@@ -6,6 +6,7 @@
 !*.html
 !*.js
 !*.css
+!*.sh
 !*/
 
 !/go.sum

@@ -15,7 +15,6 @@ import (
 	"github.com/s5i/taccount/storage"
 )
 
-// Server is a tiny local HTTP server providing the account switcher UI.
 type Server struct {
 	mu       sync.Mutex
 	entries  *[]storage.Entry
@@ -23,13 +22,10 @@ type Server struct {
 	ln       net.Listener
 }
 
-// New creates a Server. entries and yamlPath are shared with the caller.
 func New(entries *[]storage.Entry, yamlPath string) *Server {
 	return &Server{entries: entries, yamlPath: yamlPath}
 }
 
-// ListenAndServe starts the HTTP server on a random port and returns
-// the URL. It blocks in a goroutine; call this before opening the browser.
 func (s *Server) ListenAndServe() (string, error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -59,8 +55,6 @@ func (s *Server) save() {
 		log.Printf("Failed to save: %v", err)
 	}
 }
-
-// --- handlers ---
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

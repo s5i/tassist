@@ -5,12 +5,11 @@ package main
 import (
 	"log"
 	"os"
-	"os/exec"
-	"os/signal"
 	"path/filepath"
 
 	"github.com/s5i/taccount/server"
 	"github.com/s5i/taccount/storage"
+	"github.com/s5i/taccount/tray"
 )
 
 func main() {
@@ -29,19 +28,9 @@ func main() {
 	}
 	log.Printf("Listening on %s", url)
 
-	// Open the browser.
-	exec.Command("cmd", "/c", "start", url).Start()
-
-	// Wait for interrupt.
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt)
-	<-sig
+	tray.Run(url)
 }
 
 func yamlFilePath() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return "accounts.yaml"
-	}
-	return filepath.Join(filepath.Dir(exe), "accounts.yaml")
+	return filepath.Join(os.Getenv("AppData"), "TAccount", "accounts.yaml")
 }
