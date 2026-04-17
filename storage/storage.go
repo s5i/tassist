@@ -7,86 +7,131 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type String string
-
-func (b String) MarshalYAML() (interface{}, error) {
-	return base64.StdEncoding.EncodeToString([]byte(b)), nil
+type YAML struct {
+	path    string
+	entries []*row
 }
 
-func (b *String) UnmarshalYAML(node *yaml.Node) error {
-	data, err := base64.StdEncoding.DecodeString(node.Value)
-	if err != nil {
+func New(path string) (*YAML, error) {
+	s := &YAML{path: path}
+
+	if err := s.load(); err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+func (y *YAML) FindRow(id string) (*row, bool, error) {
+	for _, e := range y.entries {
+		if id == e.ID {
+			return e, true, nil
+		}
+	}
+
+	return nil, false, nil
+}
+
+func (y *YAML) ListRows() ([]*row, error) {
+	rows := make([]*row, len(y.entries))
+	copy(rows, y.entries)
+
+	return rows, nil
+}
+
+func (y *YAML) AddRow(id, name string, a, b, c []byte) error {
+	rows := make([]*row, len(y.entries))
+	copy(rows, y.entries)
+
+	rows = append(rows, &row{id, name, a, b, c})
+
+	if err := y.save(rows); err != nil {
 		return err
 	}
-	*b = String(data)
+
 	return nil
 }
 
-type Bytes []byte
+func (y *YAML) DeleteRow(id string) error {
+	rows := make([]*row, 0, len(y.entries))
 
-func (b Bytes) MarshalYAML() (interface{}, error) {
+	for _, e := range y.entries {
+		if id == e.ID {
+			continue
+		}
+		rows = append(rows, e)
+	}
+
+	if err := y.save(rows); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (y *YAML) RenameRow(id, newName string) error {
+	rows := make([]*row, len(y.entries))
+	copy(rows, y.entries)
+
+	for _, e := range rows {
+		if id == e.ID {
+			e.Name = newName
+		}
+	}
+
+	if err := y.save(rows); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (y *YAML) load() error {
+	data, err := os.ReadFile(y.path)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(data, &y.entries); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (y *YAML) save(entries []*row) error {
+	data, err := yaml.Marshal(entries)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(y.path, data, 0644); err != nil {
+		return err
+	}
+
+	y.entries = entries
+	return nil
+}
+
+type row struct {
+	ID   string      `yaml:"id"`
+	Name string      `yaml:"name"`
+	A    base64Bytes `yaml:"a"`
+	B    base64Bytes `yaml:"b"`
+	C    base64Bytes `yaml:"c"`
+}
+
+type base64Bytes []byte
+
+func (b base64Bytes) MarshalYAML() (any, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-func (b *Bytes) UnmarshalYAML(node *yaml.Node) error {
+func (b *base64Bytes) UnmarshalYAML(node *yaml.Node) error {
 	data, err := base64.StdEncoding.DecodeString(node.Value)
 	if err != nil {
 		return err
 	}
 	*b = data
 	return nil
-}
-
-type Entry struct {
-	ID        string `yaml:"id"`
-	HumanName string `yaml:"human_name"`
-	A         Bytes  `yaml:"a"`
-	B         Bytes  `yaml:"b"`
-	C         String `yaml:"c"`
-}
-
-func Load(path string) ([]Entry, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	var entries []Entry
-	if err := yaml.Unmarshal(data, &entries); err != nil {
-		return nil, err
-	}
-	return entries, nil
-}
-
-func Save(path string, entries []Entry) error {
-	data, err := yaml.Marshal(entries)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0644)
-}
-
-func AddEntry(entries *[]Entry, e Entry) {
-	*entries = append(*entries, e)
-}
-
-func DeleteEntry(entries *[]Entry, id string) {
-	for i, e := range *entries {
-		if e.ID == id {
-			*entries = append((*entries)[:i], (*entries)[i+1:]...)
-			return
-		}
-	}
-}
-
-func RenameEntry(entries *[]Entry, id, newName string) {
-	for i := range *entries {
-		if (*entries)[i].ID == id {
-			(*entries)[i].HumanName = newName
-			return
-		}
-	}
 }
