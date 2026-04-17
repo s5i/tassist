@@ -16,17 +16,17 @@ import (
 	_ "embed"
 )
 
-type Server struct {
-	storage *storage.YAML
-	ln      net.Listener
-}
-
 func New(storagePath string) (*Server, error) {
 	st, err := storage.New(storagePath)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{storage: st}, nil
+}
+
+type Server struct {
+	storage *storage.YAML
+	ln      net.Listener
 }
 
 func (s *Server) ListenAndServe() (string, error) {
@@ -55,19 +55,16 @@ func (s *Server) ListenAndServe() (string, error) {
 	return fmt.Sprintf("http://%s", ln.Addr()), nil
 }
 
-type entryJSON struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
 func (s *Server) handleIndexHTML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(indexHTML)
 }
+
 func (s *Server) handleStyleCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	w.Write(styleCSS)
 }
+
 func (s *Server) handleMainJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	w.Write(mainJS)
@@ -194,6 +191,11 @@ func (s *Server) handleStore(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(entryJSON{ID: id, Name: name})
+}
+
+type entryJSON struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 var (
