@@ -10,24 +10,18 @@ import (
 
 	"github.com/s5i/tassist/server"
 	"github.com/s5i/tassist/tray"
-	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	srv, err := server.New(storagePath())
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
-	defer eg.Wait()
-
-	eg.Go(func() error {
-		return srv.Run(ctx)
-	})
-
+	go srv.Run(ctx)
 	<-srv.Ready()
 	addr := "http://" + srv.Addr()
 
