@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ func main() {
 
 	logFile := filepath.Join(os.Getenv("Temp"), "tassist.log")
 	if f, err := os.Create(logFile); err == nil {
-		log.SetOutput(f)
+		log.SetOutput(io.MultiWriter(f, os.Stderr))
 		defer f.Close()
 	}
 

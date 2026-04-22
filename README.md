@@ -32,6 +32,7 @@ Alternatively, you're free to audit and compile the code yourself:
 ### Experience Tracker
 
 * You need to have the Skills tab open with the "Experience" line being visible.
+* If exp detection stops working, try re-focusing the Tibiantis client window (eg. by alt-tabbing into another window and back).
 * "Total" displays the current experience.
 * "Exp/h - last X" displays the experience per hour as measured over the last X.
 * "Reset" clears all historical samples.

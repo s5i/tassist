@@ -249,16 +249,17 @@ func (s *Server) handleExpStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stats := map[string]int{}
-	if latest, ok := s.exp.Latest(); ok {
-		stats["latest"] = latest
+	if current, ok := s.exp.Current(); ok {
+		stats["current"] = current
 	}
 
-	for _, window := range req.Windows {
-		delta, ok := s.exp.Delta(time.Duration(window) * time.Second)
+	for _, w := range req.Windows {
+		window := time.Duration(w) * time.Second
+		delta, ok := s.exp.Delta(window)
 		if !ok {
 			continue
 		}
-		stats[fmt.Sprintf("eph%d", window)] = int(float64(time.Hour) / float64(window) * float64(delta))
+		stats[fmt.Sprintf("eph%d", w)] = int(float64(time.Hour) / float64(window) * float64(delta))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

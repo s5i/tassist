@@ -137,7 +137,7 @@ async function refreshExpStats() {
     if (!r.ok) return;
     const data = await r.json();
 
-    document.getElementById('exp-latest').textContent = Number.isInteger(data.latest) ? data.latest : '-';
+    document.getElementById('exp-current').textContent = Number.isInteger(data.current) ? data.current : '-';
     document.getElementById('exp-1m').textContent = Number.isInteger(data.eph60) ? data.eph60 : '-';
     document.getElementById('exp-10m').textContent = Number.isInteger(data.eph600) ? data.eph600 : '-';
     document.getElementById('exp-30m').textContent = Number.isInteger(data.eph1800) ? data.eph1800 : '-';

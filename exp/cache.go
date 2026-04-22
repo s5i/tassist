@@ -4,6 +4,7 @@ package exp
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 )
@@ -19,13 +20,17 @@ func NewCache() (*Cache, error) {
 		samples:      map[time.Time]int{},
 		samplePeriod: 5 * time.Second,
 		prunePeriod:  time.Hour,
-		pruneAge:     6 * time.Hour,
+		pruneAge:     90 * time.Minute,
 	}, nil
 }
 
-func (c *Cache) Latest() (int, bool) {
+func (c *Cache) Current() (int, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if !c.latestIsFresh() {
+		return 0, false
+	}
 
 	latest, ok := c.samples[c.latest]
 	return latest, ok
@@ -35,14 +40,25 @@ func (c *Cache) Delta(window time.Duration) (int, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	latest := c.samples[c.latest]
-	prev, ok := c.samples[c.latest.Add(-window).Truncate(c.samplePeriod)]
-
-	if !ok {
+	if !c.latestIsFresh() {
 		return 0, false
 	}
 
-	return latest - prev, true
+	prevMinTS := c.latest.Add(-window).Truncate(c.samplePeriod)
+	prevTS := c.latest
+	for t := range c.samples {
+		if !prevMinTS.After(t) && t.Before(prevTS) {
+			prevTS = t
+		}
+	}
+
+	delta := c.samples[c.latest] - c.samples[prevTS]
+
+	if delta < 0 {
+		return 0, false
+	}
+
+	return delta, true
 }
 
 func (c *Cache) Reset() {
@@ -84,7 +100,11 @@ type Cache struct {
 
 func (c *Cache) addSample() {
 	exp, ok, err := c.reader.Read()
-	if err != nil || !ok {
+	if err != nil {
+		log.Printf("exp.Reader.Read() failed: %v", err)
+		return
+	}
+	if !ok {
 		return
 	}
 
@@ -106,4 +126,8 @@ func (c *Cache) prune() {
 			delete(c.samples, t)
 		}
 	}
+}
+
+func (c *Cache) latestIsFresh() bool {
+	return time.Now().Truncate(c.samplePeriod).Before(c.latest.Add(2 * c.samplePeriod))
 }

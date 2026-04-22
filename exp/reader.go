@@ -11,10 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/deluan/lookup"
 
 	_ "embed"
+	"image/png"
 	_ "image/png"
 )
 
@@ -106,4 +108,20 @@ func init() {
 		log.Fatalf("image.Decode(expKeyBytes) failed: %v", err)
 	}
 	expKeyImg = eImg
+}
+
+func saveImg(prefix string, img image.Image) {
+	filename := fmt.Sprintf("%s_%d.png", prefix, time.Now().Unix())
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Printf("Failed to create file: %v", err)
+		return
+	}
+
+	if err := png.Encode(f, img); err != nil {
+		log.Printf("Failed to encode png: %v", err)
+		f.Close()
+		return
+	}
+	f.Close()
 }
