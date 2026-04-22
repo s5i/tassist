@@ -14,8 +14,7 @@ func Run(url string) {
 
 func onReady(url string) {
 	systray.SetIcon(icon)
-	systray.SetTitle("Tibiantis Account Switcher")
-	systray.SetTooltip("Tibiantis Account Switcher")
+	systray.SetTooltip("Tibiantis Assistant")
 
 	mOpen := systray.AddMenuItem("Open", "Open in browser")
 	systray.AddSeparator()
@@ -25,7 +24,7 @@ func onReady(url string) {
 		for {
 			select {
 			case <-mOpen.ClickedCh:
-				openBrowser(url)
+				OpenBrowser(url)
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
@@ -34,7 +33,7 @@ func onReady(url string) {
 	}()
 }
 
-func openBrowser(url string) {
+func OpenBrowser(url string) {
 	exec.Command("explorer", url).Start()
 }
 

@@ -1,4 +1,4 @@
-module github.com/s5i/taccount
+module github.com/s5i/tassist
 
 go 1.26.1
 
@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/kbinani/screenshot v0.0.0-20250624051815-089614a94018
 	github.com/winlabs/gowin32 v0.0.0-20260308155911-6a6dc53430f0
+	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
 )

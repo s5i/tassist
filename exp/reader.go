@@ -18,8 +18,8 @@ import (
 	_ "image/png"
 )
 
-func New() (*Reader, error) {
-	ocr := lookup.NewOCR(0.6)
+func NewReader() (*Reader, error) {
+	ocr := lookup.NewOCR(0.7)
 	if err := ocr.LoadFont(fontPath); err != nil {
 		return nil, err
 	}
@@ -38,20 +38,34 @@ func (r *Reader) Read() (int, bool, error) {
 		return 0, false, fmt.Errorf(`CaptureWindow("Tibiantis") failed: %v`, err)
 	}
 
-	expMatch, err := lookup.NewLookup(windowImg).FindAll(expKeyImg, 0.6)
+	rightBarImg := windowImg.SubImage(image.Rect(
+		windowImg.Rect.Max.X-200,
+		windowImg.Rect.Min.Y,
+		windowImg.Rect.Max.X,
+		windowImg.Rect.Max.Y,
+	)).(*image.RGBA)
+
+	expMatches, err := lookup.NewLookup(rightBarImg).FindAll(expKeyImg, 0.8)
 	if err != nil {
 		return 0, false, fmt.Errorf(`lookup.FindAll(expImg) failed: %v`, err)
 	}
 
-	if len(expMatch) == 0 {
+	if len(expMatches) == 0 {
 		return 0, false, nil
 	}
 
-	x := expMatch[0].X + expKeyImg.Bounds().Dx()
-	y := expMatch[0].Y
-	dx := 80
-	dy := 10
-	expValueImg := windowImg.SubImage(image.Rect(x, y, x+dx, y+dy))
+	expMatch := expMatches[0]
+	for i := range expMatches {
+		if expMatches[i].G > expMatch.G {
+			expMatch = expMatches[i]
+		}
+	}
+
+	expValX := rightBarImg.Rect.Min.X + expMatch.X + expKeyImg.Bounds().Dx()
+	expValY := rightBarImg.Rect.Min.Y + expMatch.Y
+	expValDX := 80
+	expValDY := expKeyImg.Bounds().Dy()
+	expValueImg := rightBarImg.SubImage(image.Rect(expValX, expValY, expValX+expValDX, expValY+expValDY))
 
 	expStr, err := r.ocr.Recognize(expValueImg)
 	if err != nil {

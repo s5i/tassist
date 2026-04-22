@@ -33,7 +33,7 @@ async function hdlRenameDone(ev) {
         return;
     }
 
-    const r = await fetch('/api/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, name: newName }) });
+    const r = await fetch('/api/accounts/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, name: newName }) });
     if (r.ok) {
         toast(`Renamed "${name}" to "${newName}".`);
         reload();
@@ -47,7 +47,7 @@ async function hdlLoad(ev) {
     const id = entryEl.dataset.id;
     const name = entryEl.dataset.name;
 
-    const r = await fetch('/api/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+    const r = await fetch('/api/accounts/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
     if (r.ok) {
         toast(`Loaded "${name}".`);
     } else {
@@ -62,7 +62,7 @@ async function hdlDelete(ev) {
 
     if (!confirm(`Delete "${name}"?`)) return;
 
-    const r = await fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+    const r = await fetch('/api/accounts/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
     if (r.ok) {
         toast(`Deleted "${name}".`);
         reload();
@@ -72,7 +72,7 @@ async function hdlDelete(ev) {
 }
 
 async function reload() {
-    const resp = await fetch('/api/list');
+    const resp = await fetch('/api/accounts/list');
     const entries = await resp.json();
     listEl.innerHTML = '';
 
@@ -86,8 +86,8 @@ async function reload() {
         entryEl.setAttribute('data-name', name);
         entryEl.innerHTML =
             '<input name="name" class="name" readonly="true" />' +
-            '<button class="btn load">Load</button>' +
-            '<button class="btn delete"">Delete</button>';
+            '<button class="btn btn-acc load">Load</button>' +
+            '<button class="btn btn-acc delete"">Delete</button>';
 
         const nameEl = entryEl.querySelector('.name');
 
@@ -109,7 +109,7 @@ async function reload() {
     entryEl.className = 'entry';
     entryEl.innerHTML =
         '<input class="name" placeholder="New entry" />' +
-        '<button class="btn store">Store</button>'
+        '<button class="btn btn-acc store">Store</button>'
 
     const nameEl = entryEl.querySelector('.name');
 
@@ -118,7 +118,7 @@ async function reload() {
         console.log('storeEl.click', ev);
 
         const name = nameEl.value.trim() || 'Unnamed';
-        const r = await fetch('/api/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) });
+        const r = await fetch('/api/accounts/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) });
         if (r.ok) {
             toast(`Stored "${name}".`);
             reload();
@@ -131,3 +131,22 @@ async function reload() {
 }
 
 reload();
+
+async function refreshExpStats() {
+    const r = await fetch('/api/exp/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ windows: [60, 600, 1800, 3600] }) });
+    if (!r.ok) return;
+    const data = await r.json();
+
+    document.getElementById('exp-latest').textContent = data.latest || '-';
+    document.getElementById('exp-1m').textContent = data.eph60 || '-';
+    document.getElementById('exp-10m').textContent = data.eph600 || '-';
+    document.getElementById('exp-30m').textContent = data.eph1800 || '-';
+    document.getElementById('exp-1h').textContent = data.eph3600 || '-';
+}
+
+document.getElementById('exp-reset').addEventListener('click', async () => {
+    await fetch('/api/exp/reset');
+});
+
+refreshExpStats();
+setInterval(refreshExpStats, 2000);

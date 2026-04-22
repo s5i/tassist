@@ -1,6 +1,6 @@
 //go:build windows
 
-package storage
+package acc
 
 import (
 	"encoding/base64"
@@ -9,13 +9,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type YAML struct {
+type Storage struct {
 	path    string
 	entries []*row
 }
 
-func New(path string) (*YAML, error) {
-	s := &YAML{path: path}
+func New(path string) (*Storage, error) {
+	s := &Storage{path: path}
 
 	if err := s.load(); err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func New(path string) (*YAML, error) {
 	return s, nil
 }
 
-func (y *YAML) FindRow(id string) (*row, bool, error) {
+func (y *Storage) FindRow(id string) (*row, bool, error) {
 	for _, e := range y.entries {
 		if id == e.ID {
 			return e, true, nil
@@ -34,14 +34,14 @@ func (y *YAML) FindRow(id string) (*row, bool, error) {
 	return nil, false, nil
 }
 
-func (y *YAML) ListRows() ([]*row, error) {
+func (y *Storage) ListRows() ([]*row, error) {
 	rows := make([]*row, len(y.entries))
 	copy(rows, y.entries)
 
 	return rows, nil
 }
 
-func (y *YAML) AddRow(id, name string, a, b, c []byte) error {
+func (y *Storage) AddRow(id, name string, a, b, c []byte) error {
 	rows := make([]*row, len(y.entries))
 	copy(rows, y.entries)
 
@@ -54,7 +54,7 @@ func (y *YAML) AddRow(id, name string, a, b, c []byte) error {
 	return nil
 }
 
-func (y *YAML) DeleteRow(id string) error {
+func (y *Storage) DeleteRow(id string) error {
 	rows := make([]*row, 0, len(y.entries))
 
 	for _, e := range y.entries {
@@ -71,7 +71,7 @@ func (y *YAML) DeleteRow(id string) error {
 	return nil
 }
 
-func (y *YAML) RenameRow(id, newName string) error {
+func (y *Storage) RenameRow(id, newName string) error {
 	rows := make([]*row, len(y.entries))
 	copy(rows, y.entries)
 
@@ -88,7 +88,7 @@ func (y *YAML) RenameRow(id, newName string) error {
 	return nil
 }
 
-func (y *YAML) load() error {
+func (y *Storage) load() error {
 	data, err := os.ReadFile(y.path)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (y *YAML) load() error {
 	return nil
 }
 
-func (y *YAML) save(entries []*row) error {
+func (y *Storage) save(entries []*row) error {
 	data, err := yaml.Marshal(entries)
 	if err != nil {
 		return err

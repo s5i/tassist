@@ -1,6 +1,6 @@
 //go:build windows
 
-package registry
+package acc
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 // The unescaped tab is intentional.
 const regPath = "SOFTWARE\tibiantis\\Credentials"
 
-func Snapshot() (a, b, c []byte, err error) {
+func RegSnapshot() (a, b, c []byte, err error) {
 	k, err := registry.OpenKey(registry.CURRENT_USER, regPath, registry.QUERY_VALUE)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("open registry key: %w", err)
@@ -36,7 +36,7 @@ func Snapshot() (a, b, c []byte, err error) {
 	return a, b, []byte(cStr), nil
 }
 
-func Restore(a, b, c []byte) error {
+func RegRestore(a, b, c []byte) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, regPath, registry.SET_VALUE)
 	if err != nil {
 		return fmt.Errorf("open registry key: %w", err)

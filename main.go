@@ -3,32 +3,38 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/s5i/taccount/server"
-	"github.com/s5i/taccount/tray"
+	"github.com/s5i/tassist/server"
+	"github.com/s5i/tassist/tray"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
-	storagePath := storagePath()
+	ctx := context.Background()
 
-	srv, err := server.New(storagePath)
+	srv, err := server.New(storagePath())
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 
-	url, err := srv.ListenAndServe()
-	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	eg, ctx := errgroup.WithContext(ctx)
+	defer eg.Wait()
 
-	log.Printf("Listening on %s", url)
+	eg.Go(func() error {
+		return srv.Run(ctx)
+	})
 
-	tray.Run(url)
+	<-srv.Ready()
+	addr := "http://" + srv.Addr()
+
+	tray.OpenBrowser(addr)
+	tray.Run(addr)
 }
 
 func storagePath() string {
-	return filepath.Join(os.Getenv("AppData"), "TAccount", "accounts.yaml")
+	return filepath.Join(os.Getenv("AppData"), "TAssistant", "accounts.yaml")
 }
