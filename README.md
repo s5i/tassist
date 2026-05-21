@@ -20,4 +20,4 @@ Alternatively, you're free to audit and compile the code yourself:
 ![Hunt tab](https://raw.github.com/s5i/tassist/main/scr_hunt.png)
 ![Accounts tab](https://raw.github.com/s5i/tassist/main/scr_accounts.png)
 ![Settings tab](https://raw.github.com/s5i/tassist/main/scr_settings.png)
-![Help tab](https://raw.github.com/s5i/tassist/main/scr_settings.png)
+![Help tab](https://raw.github.com/s5i/tassist/main/scr_help.png)
