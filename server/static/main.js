@@ -49,6 +49,24 @@ const update = {
     }
 };
 
+const tabs = {
+    run: function () {
+        document.querySelectorAll('.tab-btn').forEach((btn) => {
+            btn.addEventListener('click', tabs.hdlSwitch);
+        });
+    },
+    hdlSwitch: function (ev) {
+        const btn = ev.target.closest('.tab-btn');
+        const tabId = btn.dataset.tab;
+
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('tab-active'));
+        btn.classList.add('tab-active');
+
+        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('tab-panel-active'));
+        document.getElementById('tab-' + tabId).classList.add('tab-panel-active');
+    },
+};
+
 const exp = {
     run: function () {
         document.querySelectorAll('.exp-btn').forEach((x) => {
@@ -336,12 +354,14 @@ const preset = {
         if (!resp.ok) return;
         const d = await resp.json();
 
-        const containerEl = document.getElementById('preset-container');
-        containerEl.innerHTML = '';
+        const listEl = document.getElementById('preset-list');
+        listEl.innerHTML = '';
+
+        const indicatorEl = document.getElementById('preset-indicator');
 
         d.available.forEach((id) => {
             const btn = document.createElement('button');
-            containerEl.appendChild(btn);
+            listEl.appendChild(btn);
 
             btn.textContent = preset.fmtID(id);
             btn.classList.add('btn', 'preset-btn');
@@ -350,6 +370,7 @@ const preset = {
 
             if (id == d.active) {
                 btn.classList.add('preset-active');
+                indicatorEl.textContent = preset.fmtID(id);
             }
         });
     },
@@ -369,6 +390,7 @@ const preset = {
     },
 };
 
+tabs.run();
 preset.run();
 keepalive.run();
 version.run();

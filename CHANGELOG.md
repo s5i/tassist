@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.22 - 2026-05-21
+
+- Tweak the threshold for "Experience" label detection again...
+- Separate various containers into tabs.
+- Move the usage instructions from `README.md` to a "Help" tab.
+
 ## v0.0.21 — 2026-05-14
 
 - Add online counter.

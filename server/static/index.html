@@ -8,66 +8,168 @@
 </head>
 
 <body>
-    <div id="preset-container" class="preset-container"></div>
-    <div class="container-column">
-        <div id="world-container" class="container world-container">
-            <div class="container-title">World</div>
-            <div class="world-val-grid">
-                <div class="world-cell">
-                    <span class="world-label">Online</span>
-                    <span id="world-val-online" class="world-value">-</span>
+    <div class="tab-bar">
+        <div class="tab-bar-tabs">
+            <button class="tab-btn tab-active" data-tab="hunt">Hunt</button>
+            <button class="tab-btn" data-tab="accounts">Accounts</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+            <button class="tab-btn" data-tab="help">Help</button>
+        </div>
+        <div id="preset-indicator" class="preset-indicator"></div>
+    </div>
+
+    <div class="tab-content-area">
+        <div id="tab-hunt" class="tab-panel tab-panel-active">
+            <div class="container-column">
+                <div id="world-container" class="container world-container">
+                    <div class="container-title">World</div>
+                    <div class="world-val-grid">
+                        <div class="world-cell">
+                            <span class="world-label">Online</span>
+                            <span id="world-val-online" class="world-value">-</span>
+                        </div>
+                        <div class="world-cell">
+                            <span class="world-label">Ping</span>
+                            <span id="world-val-rtt" class="world-value">-</span>
+                        </div>
+                        <div class="world-cell">
+                            <span class="world-label">Packet Loss</span>
+                            <span id="world-val-packetloss" class="world-value">-</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="world-cell">
-                    <span class="world-label">Ping</span>
-                    <span id="world-val-rtt" class="world-value">-</span>
-                </div>
-                <div class="world-cell">
-                    <span class="world-label">Packet Loss</span>
-                    <span id="world-val-packetloss" class="world-value">-</span>
+                <div id="exp-container" class="container exp-container">
+                    <div class="container-title">Experience Tracker</div>
+                    <div class="exp-val-grid">
+                        <div class="exp-cell">
+                            <span class="exp-label">Level</span>
+                            <span id="exp-val-level" class="exp-value">-</span>
+                        </div>
+                        <div class="exp-cell">
+                            <span class="exp-label">Experience</span>
+                            <span id="exp-val-total" class="exp-value">-</span>
+                        </div>
+                        <div class="exp-cell">
+                            <span class="exp-label">Remaining</span>
+                            <span id="exp-val-remaining" class="exp-value">-</span>
+                        </div>
+                        <div class="exp-cell">
+                            <span class="exp-label">Session Exp/h</span>
+                            <span id="exp-val-session-rate" class="exp-value">-</span>
+                        </div>
+                        <div class="exp-cell">
+                            <span class="exp-label">Session Exp</span>
+                            <span id="exp-val-session-delta" class="exp-value">-</span>
+                        </div>
+                        <div class="exp-cell">
+                            <span class="exp-label">Session Duration</span>
+                            <span id="exp-val-session-duration" class="exp-value">-</span>
+                        </div>
+                    </div>
+                    <div class="exp-btn-grid">
+                        <button id="exp-btn-run" class="btn exp-btn">Start</button>
+                        <button id="exp-btn-pause" class="btn exp-btn">Pause</button>
+                        <button id="exp-btn-reset" class="btn exp-btn">Reset</button>
+                    </div>
                 </div>
             </div>
         </div>
-        <div id="exp-container" class="container exp-container">
-            <div class="container-title">Experience Tracker</div>
-            <div class="exp-val-grid">
-                <div class="exp-cell">
-                    <span class="exp-label">Level</span>
-                    <span id="exp-val-level" class="exp-value">-</span>
-                </div>
-                <div class="exp-cell">
-                    <span class="exp-label">Experience</span>
-                    <span id="exp-val-total" class="exp-value">-</span>
-                </div>
-                <div class="exp-cell">
-                    <span class="exp-label">Remaining</span>
-                    <span id="exp-val-remaining" class="exp-value">-</span>
-                </div>
-                <div class="exp-cell">
-                    <span class="exp-label">Session Exp/h</span>
-                    <span id="exp-val-session-rate" class="exp-value">-</span>
-                </div>
-                <div class="exp-cell">
-                    <span class="exp-label">Session Exp</span>
-                    <span id="exp-val-session-delta" class="exp-value">-</span>
-                </div>
-                <div class="exp-cell">
-                    <span class="exp-label">Session Duration</span>
-                    <span id="exp-val-session-duration" class="exp-value">-</span>
+
+        <div id="tab-accounts" class="tab-panel">
+            <div class="container-column">
+                <div id="acc-container" class="container acc-container">
+                    <div class="container-title">Switcher</div>
+                    <div id="acc-list" class="acc-list"></div>
                 </div>
             </div>
-            <div class="exp-btn-grid">
-                <button id="exp-btn-run" class="btn exp-btn">Start</button>
-                <button id="exp-btn-pause" class="btn exp-btn">Pause</button>
-                <button id="exp-btn-reset" class="btn exp-btn">Reset</button>
+        </div>
+
+        <div id="tab-settings" class="tab-panel">
+            <div class="container-column">
+                <div id="preset-container" class="container preset-container">
+                    <div class="container-title">World Presets</div>
+                    <div id="preset-list" class="preset-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-help" class="tab-panel">
+            <div class="container-column">
+                <div class="container help-container">
+                    <div class="help-content">
+                        <h1>Hunt</h1>
+                        <h2>World</h2>
+                        <ul>
+                            <li><strong>Online</strong> displays the number of players online on the chosen world.</li>
+                            <li><strong>Ping</strong> displays your round-trip-time to the chosen world.</li>
+                            <li><strong>Packet loss</strong> displays the percentage of ping packets lost within the
+                                last 20 seconds.</li>
+                        </ul>
+                        <h2>Experience Tracker</h2>
+                        <ul>
+                            <li>You need to have the Skills tab open with the "Experience" line being visible.</li>
+                            <li>If exp detection is not working despite an active session, try re-focusing the
+                                game window (e.g. by alt-tabbing into another window and back).</li>
+                            <li><strong>Level</strong> and <strong>Experience</strong> display the current level and
+                                experience, respectively.</li>
+                            <li><strong>Remaining</strong> displays the experience needed to reach the next level.</li>
+                            <li><strong>Session exp/h</strong>, <strong>Session exp</strong>, <strong>Session
+                                    duration</strong> display the experience per hour, gained experience, and time
+                                elapsed since the session started, respectively.</li>
+                            <li><strong>Start</strong>/<strong>Stop</strong>: controls whether the session is active.
+                            </li>
+                            <li><strong>Pause</strong>/<strong>Unpause</strong> controls whether the session is paused;
+                                while paused, neither experience changes nor time elapsed is counted towards exp/h.</li>
+                            <li><strong>Reset</strong> resets the session.</li>
+                        </ul>
+                        <h1>Accounts</h1>
+                        <h2>Switcher</h2>
+                        <ul>
+
+                            <li><strong>Store</strong> stores the current saved credentials. </li>
+                            <li><strong>Load</strong> restores previously stored credentials.</li>
+                            <li>Double-clicking an entry allows you to rename it.</li>
+                            <li>The game client refreshes the stored credentials on each <u>character</u>
+                                login; keep this in mind to avoid confusion with which credentials are stored/loaded.
+                            </li>
+                        </ul>
+                        <h1>Settings</h1>
+                        <h2>World presets</h2>
+                        <ul>
+                            <li>Clicking on a world name will reload TAssistant with settings tuned to a given world
+                                (players online, server IPs, client window name, etc).</li>
+                        </ul>
+                        <h1>Technical details</h1>
+                        <ul>
+                            <li>The application quits automatically ~15-20 seconds after closing the browser tab.</li>
+                            <li>Online numbers are pulled from <code>tibiantis.info</code> and
+                                <code>opentibia.info</code>.
+                            </li>
+                            <li>Experience tracking: TAssistant takes a screenshot of a window matching the OT-specific
+                                window title every 2 seconds, searches for "Experience" on the right panel, and then
+                                runs OCR on the line.</li>
+                            <li>Account switching: TAssistant stores the Base64-encoded registry entries under
+                                <code>%AppData%\TAssistant\accounts.yaml</code>.
+                            </li>
+                            <li>Packet loss measure: If a server uses built-in proxies, we display the average across
+                                all known proxies.</li>
+                        </ul>
+                        <h1>Issues?</h1>
+                        <ul>
+                            <li>Report any issues to shyymzinhu @ Discord; attach the following:
+                                <ul>
+                                    <li>Application log; found under <code>%Temp%\tassist\tassist.log</code>.</li>
+                                    <li>(UI-specific issues only) DevTools console output; found under F12 on most
+                                        browsers.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="container-column">
-        <div id="acc-container" class="container acc-container">
-            <div class="container-title">Account Switcher</div>
-            <div id="acc-list" class="acc-list"></div>
-        </div>
-    </div>
+
     <div id="toast" class="toast"></div>
     <script src="/main.js"></script>
 </body>
