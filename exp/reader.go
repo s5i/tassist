@@ -65,7 +65,7 @@ func (r *Reader) Read() (int, bool, error) {
 		windowImg.Rect.Max.Y,
 	)).(*image.RGBA)
 
-	expMatches, err := lookup.NewLookup(rightBarImg).FindAll(r.expKeyImg, 0.5)
+	expMatches, err := lookup.NewLookup(rightBarImg).FindAll(r.expKeyImg, 0.6)
 	if err != nil {
 		return 0, false, fmt.Errorf(`lookup.FindAll(expImg) failed: %v`, err)
 	}
