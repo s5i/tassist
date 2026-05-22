@@ -362,6 +362,7 @@ body {
     min-width: 80px;
     text-align: center;
     white-space: nowrap;
+    margin: 0 10px;
 }
 
 .timer-entry-firing {
@@ -373,9 +374,20 @@ body {
     color: #666;
 }
 
+.timer-remaining.timer-firing {
+    color: #ff4444;
+}
+
 @keyframes timer-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
 }
 
 .timer-loop-label {
@@ -391,6 +403,13 @@ body {
 .timer-loop-label input[type="checkbox"] {
     accent-color: #e94560;
     cursor: pointer;
+}
+
+.timer-checks-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 10px;
 }
 
 .timer-btn {

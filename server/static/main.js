@@ -391,14 +391,14 @@ const preset = {
 };
 
 const timers = {
-    firingSet: new Set(),
     beepAudio: null,
     beepPlaying: false,
+    rows: new Map(), // id -> { el, nameEl, remainEl, loopCb, soundCb, startStopEl }
     run: function () {
         timers.beepAudio = new Audio('/beep.mp3');
         timers.beepAudio.loop = true;
 
-        // Build the add-new row once so it doesn't lose focus on reload.
+        // Build the add-new row once.
         const listEl = document.getElementById('timer-list');
         const addEl = document.createElement('div');
         listEl.appendChild(addEl);
@@ -423,80 +423,104 @@ const timers = {
         timers.addRowEl = addEl;
 
         setInterval(timers.reload, 1000);
-        timers.reload();
+        timers.rebuildAll();
     },
     addRowEl: null,
+    createRow: function (id) {
+        const listEl = document.getElementById('timer-list');
+
+        const entryEl = document.createElement('div');
+        listEl.insertBefore(entryEl, timers.addRowEl);
+        entryEl.classList.add('timer-entry');
+        entryEl.dataset.id = id;
+        entryEl.addEventListener('click', (ev) => {
+            if (ev.target.closest('button, input, label')) return;
+            timers.hdlAck(id);
+        });
+
+        const nameEl = document.createElement('span');
+        entryEl.appendChild(nameEl);
+        nameEl.classList.add('timer-name');
+
+        const remainEl = document.createElement('span');
+        entryEl.appendChild(remainEl);
+        remainEl.classList.add('timer-remaining');
+
+        const checksGroup = document.createElement('div');
+        entryEl.appendChild(checksGroup);
+        checksGroup.classList.add('timer-checks-group');
+
+        const loopLabel = document.createElement('label');
+        checksGroup.appendChild(loopLabel);
+        loopLabel.classList.add('timer-loop-label');
+        const loopCb = document.createElement('input');
+        loopCb.type = 'checkbox';
+        loopCb.addEventListener('change', () => timers.hdlLoop(id, loopCb.checked));
+        loopLabel.appendChild(loopCb);
+        loopLabel.appendChild(document.createTextNode('Loop'));
+
+        const soundLabel = document.createElement('label');
+        checksGroup.appendChild(soundLabel);
+        soundLabel.classList.add('timer-loop-label');
+        const soundCb = document.createElement('input');
+        soundCb.type = 'checkbox';
+        soundCb.addEventListener('change', () => timers.hdlSound(id, soundCb.checked));
+        soundLabel.appendChild(soundCb);
+        soundLabel.appendChild(document.createTextNode('Sound'));
+
+        const startStopEl = document.createElement('button');
+        entryEl.appendChild(startStopEl);
+        startStopEl.classList.add('btn', 'timer-btn');
+
+        const removeEl = document.createElement('button');
+        entryEl.appendChild(removeEl);
+        removeEl.textContent = 'Remove';
+        removeEl.classList.add('btn', 'timer-btn');
+
+        const refs = { entryEl, nameEl, remainEl, loopCb, soundCb, startStopEl, removeEl };
+        timers.rows.set(id, refs);
+        return refs;
+    },
+    updateRow: function (refs, t) {
+        refs.nameEl.textContent = t.name;
+        refs.remainEl.textContent = timers.fmtSec(t.active ? t.remaining : t.period);
+        refs.remainEl.classList.toggle('timer-inactive', !t.active);
+        refs.remainEl.classList.toggle('timer-firing', t.active && t.firing);
+        refs.entryEl.classList.toggle('timer-entry-firing', t.active && t.firing);
+        refs.loopCb.checked = t.loop;
+        refs.soundCb.checked = t.sound;
+        refs.startStopEl.textContent = t.active ? 'Stop' : 'Start';
+        refs.startStopEl.onclick = () => t.active ? timers.hdlStop(t.id) : timers.hdlStart(t.id);
+        refs.removeEl.onclick = () => timers.hdlRemove(t.id, t.name);
+    },
+    rebuildAll: async function () {
+        // Destroy all existing rows and recreate from scratch.
+        for (const [, refs] of timers.rows) refs.entryEl.remove();
+        timers.rows.clear();
+
+        const r = await fetch('/api/timers/list');
+        if (!r.ok) return;
+        const d = await r.json();
+
+        for (const t of d) {
+            const refs = timers.createRow(t.id);
+            timers.updateRow(refs, t);
+        }
+        timers.updateBeep(d);
+    },
     reload: async function () {
         const r = await fetch('/api/timers/list');
         if (!r.ok) return;
         const d = await r.json();
 
-        const listEl = document.getElementById('timer-list');
-
-        // Remove all timer entries but keep the add-row.
-        listEl.querySelectorAll('.timer-entry').forEach(el => el.remove());
-
-        let shouldBeep = false;
-
         for (const t of d) {
-            const entryEl = document.createElement('div');
-            listEl.insertBefore(entryEl, timers.addRowEl);
-            entryEl.classList.add('timer-entry');
-            entryEl.dataset.id = t.id;
-
-            const nameEl = document.createElement('span');
-            entryEl.appendChild(nameEl);
-            nameEl.classList.add('timer-name');
-            nameEl.textContent = t.name;
-
-            const remainEl = document.createElement('span');
-            entryEl.appendChild(remainEl);
-            remainEl.classList.add('timer-remaining');
-            if (!t.active) {
-                remainEl.textContent = timers.fmtSec(t.period);
-                remainEl.classList.add('timer-inactive');
-            } else if (t.firing) {
-                remainEl.textContent = timers.fmtSec(t.remaining);
-                entryEl.classList.add('timer-entry-firing');
-                if (t.sound) shouldBeep = true;
-            } else {
-                remainEl.textContent = timers.fmtSec(t.remaining);
-            }
-
-            const loopLabel = document.createElement('label');
-            entryEl.appendChild(loopLabel);
-            loopLabel.classList.add('timer-loop-label');
-            const loopCb = document.createElement('input');
-            loopCb.type = 'checkbox';
-            loopCb.checked = t.loop;
-            loopCb.addEventListener('change', () => timers.hdlLoop(t.id, loopCb.checked));
-            loopLabel.appendChild(loopCb);
-            loopLabel.appendChild(document.createTextNode('Loop'));
-
-            const soundLabel = document.createElement('label');
-            entryEl.appendChild(soundLabel);
-            soundLabel.classList.add('timer-loop-label');
-            const soundCb = document.createElement('input');
-            soundCb.type = 'checkbox';
-            soundCb.checked = t.sound;
-            soundCb.addEventListener('change', () => timers.hdlSound(t.id, soundCb.checked));
-            soundLabel.appendChild(soundCb);
-            soundLabel.appendChild(document.createTextNode('Sound'));
-
-            const startStopEl = document.createElement('button');
-            entryEl.appendChild(startStopEl);
-            startStopEl.textContent = t.active ? 'Stop' : 'Start';
-            startStopEl.classList.add('btn', 'timer-btn');
-            startStopEl.addEventListener('click', () => t.active ? timers.hdlStop(t.id) : timers.hdlStart(t.id));
-
-            const ackEl = document.createElement('button');
-            entryEl.appendChild(ackEl);
-            ackEl.textContent = 'Ack';
-            ackEl.classList.add('btn', 'timer-btn');
-            ackEl.addEventListener('click', () => timers.hdlAck(t.id));
+            const refs = timers.rows.get(t.id);
+            if (refs) timers.updateRow(refs, t);
         }
-
-        // Persistent beep: play while any sound+firing timer, stop otherwise.
+        timers.updateBeep(d);
+    },
+    updateBeep: function (d) {
+        const shouldBeep = d.some(t => t.firing && t.sound);
         if (shouldBeep && !timers.beepPlaying) {
             timers.beepAudio.currentTime = 0;
             timers.beepAudio.play().catch(() => { });
@@ -516,18 +540,15 @@ const timers = {
     },
     hdlStart: async function (id) {
         const r = await fetch('/api/timers/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-        if (r.ok) timers.reload();
-        else toast.msg('Error: ' + await r.text());
+        if (!r.ok) toast.msg('Error: ' + await r.text());
     },
     hdlStop: async function (id) {
         const r = await fetch('/api/timers/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-        if (r.ok) timers.reload();
-        else toast.msg('Error: ' + await r.text());
+        if (!r.ok) toast.msg('Error: ' + await r.text());
     },
     hdlAck: async function (id) {
         const r = await fetch('/api/timers/ack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-        if (r.ok) timers.reload();
-        else toast.msg('Error: ' + await r.text());
+        if (!r.ok) toast.msg('Error: ' + await r.text());
     },
     hdlLoop: async function (id, loop) {
         const r = await fetch('/api/timers/loop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, loop }) });
@@ -536,6 +557,16 @@ const timers = {
     hdlSound: async function (id, sound) {
         const r = await fetch('/api/timers/sound', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, sound }) });
         if (!r.ok) toast.msg('Error: ' + await r.text());
+    },
+    hdlRemove: async function (id, name) {
+        if (!confirm(`Remove timer "${name}"?`)) return;
+        const r = await fetch('/api/timers/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        if (r.ok) {
+            toast.msg(`Timer "${name}" removed.`);
+            timers.rebuildAll();
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
     },
     hdlAdd: async function (nameInput, periodInput) {
         const name = nameInput.value.trim();
@@ -549,7 +580,7 @@ const timers = {
             toast.msg(`Timer "${name}" added.`);
             nameInput.value = '';
             periodInput.value = '';
-            timers.reload();
+            timers.rebuildAll();
         } else {
             toast.msg('Error: ' + await r.text());
         }

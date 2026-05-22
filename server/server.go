@@ -80,6 +80,7 @@ func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *pi
 	mux.HandleFunc("/api/timers/ack", s.handleTimerAck)
 	mux.HandleFunc("/api/timers/loop", s.handleTimerLoop)
 	mux.HandleFunc("/api/timers/sound", s.handleTimerSound)
+	mux.HandleFunc("/api/timers/remove", s.handleTimerRemove)
 	mux.HandleFunc("/api/timers/list", s.handleTimerList)
 	s.mux = mux
 
@@ -710,7 +711,13 @@ func (s *Server) handleTimerAck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t.Acked = t.Started.Add(t.Period * (time.Since(t.Started) / t.Period))
+	if !t.Loop && t.Active && t.Acked.Add(t.Period).Before(time.Now()) {
+		t.Started = time.Time{}
+		t.Acked = t.Started
+		t.Active = false
+	} else {
+		t.Acked = t.Started.Add(t.Period * (time.Since(t.Started) / t.Period))
+	}
 
 	if err := s.tmStorage.AddOrUpdate(t); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -748,6 +755,9 @@ func (s *Server) handleTimerLoop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t.Loop = req.Loop
+	if !t.Loop {
+		t.Started = t.Started.Add(t.Period * (time.Since(t.Started) / t.Period))
+	}
 
 	if err := s.tmStorage.AddOrUpdate(t); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -792,6 +802,30 @@ func (s *Server) handleTimerSound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Timer %q (ID=%q) sound set to %v.", t.Name, t.ID, req.Sound)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleTimerRemove(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := s.tmStorage.Delete(req.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer ID=%q removed.", req.ID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{}"))
