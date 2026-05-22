@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,9 +14,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,6 +28,7 @@ import (
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
 	"github.com/s5i/tassist/settings"
+	"github.com/s5i/tassist/timer"
 
 	"golang.org/x/sync/errgroup"
 
@@ -33,7 +37,7 @@ import (
 
 var ErrRestart = fmt.Errorf("server is restarting...")
 
-func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage) (*Server, error) {
+func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage) (*Server, error) {
 	s := &Server{
 		tmpDir:               tmpDir,
 		acc:                  accStorage,
@@ -42,6 +46,7 @@ func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *pi
 		online:               online,
 		version:              version,
 		stStorage:            stStorage,
+		tmStorage:            tmStorage,
 		keepalive:            time.Now(),
 		keepaliveCheckPeriod: 2 * time.Second,
 		keepaliveFails:       3,
@@ -49,10 +54,7 @@ func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *pi
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.handleIndexHTML)
-	mux.HandleFunc("/style.css", s.handleStyleCSS)
-	mux.HandleFunc("/main.js", s.handleMainJS)
-	mux.HandleFunc("/favicon.ico", s.handleFaviconIco)
+	mux.HandleFunc("/", s.handleStatic)
 	mux.HandleFunc("/api/keepalive", s.handleKeepalive)
 	mux.HandleFunc("/api/version", s.handleVersion)
 	mux.HandleFunc("/api/accounts/list", s.handleAccList)
@@ -72,6 +74,13 @@ func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *pi
 	mux.HandleFunc("/api/preset/list", s.handlePresetList)
 	mux.HandleFunc("/api/update/check", s.handleUpdateCheck)
 	mux.HandleFunc("/api/update/execute", s.handleUpdateExecute)
+	mux.HandleFunc("/api/timers/add", s.handleTimerAdd)
+	mux.HandleFunc("/api/timers/start", s.handleTimerStart)
+	mux.HandleFunc("/api/timers/stop", s.handleTimerStop)
+	mux.HandleFunc("/api/timers/ack", s.handleTimerAck)
+	mux.HandleFunc("/api/timers/loop", s.handleTimerLoop)
+	mux.HandleFunc("/api/timers/sound", s.handleTimerSound)
+	mux.HandleFunc("/api/timers/list", s.handleTimerList)
 	s.mux = mux
 
 	return s, nil
@@ -149,6 +158,7 @@ type Server struct {
 	pinger    *ping.Pinger
 	online    *online.Online
 	stStorage *settings.Storage
+	tmStorage *timer.Storage
 
 	srv *http.Server
 	mux *http.ServeMux
@@ -171,26 +181,6 @@ type Server struct {
 	restart bool
 }
 
-func (s *Server) handleIndexHTML(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(indexHTML)
-}
-
-func (s *Server) handleStyleCSS(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	w.Write(styleCSS)
-}
-
-func (s *Server) handleMainJS(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	w.Write(mainJS)
-}
-
-func (s *Server) handleFaviconIco(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "image/x-icon")
-	w.Write(favicon)
-}
-
 func (s *Server) handleAccList(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.acc.ListRows()
 	if err != nil {
@@ -198,9 +188,13 @@ func (s *Server) handleAccList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out := []entryJSON{} // JSON nil != empty slice.
+	type accRow struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	out := []accRow{} // JSON nil != empty slice.
 	for _, row := range rows {
-		out = append(out, entryJSON{ID: row.ID, Name: row.Name})
+		out = append(out, accRow{ID: row.ID, Name: row.Name})
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
@@ -319,7 +313,10 @@ func (s *Server) handleAccStore(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Account %q (ID=%q) stored.", name, id)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entryJSON{ID: id, Name: name})
+	json.NewEncoder(w).Encode(struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}{ID: id, Name: name})
 }
 
 func (s *Server) handleExpReset(w http.ResponseWriter, r *http.Request) {
@@ -571,18 +568,316 @@ func downloadFile(path string, url string) error {
 	return err
 }
 
-type entryJSON struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+func (s *Server) handleTimerAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name   string `json:"name"`
+		Period string `json:"period"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	period, err := time.ParseDuration(req.Period)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid period: %v", err), http.StatusBadRequest)
+		return
+	}
+	if period <= 0 {
+		http.Error(w, "timer period must be positive", http.StatusBadRequest)
+		return
+	}
+
+	t := &timer.Timer{
+		ID:     uuid.New().String()[:8],
+		Name:   req.Name,
+		Period: period,
+	}
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) added.", t.Name, t.ID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
+		ID string `json:"id"`
+	}{ID: t.ID})
 }
 
-var (
-	//go:embed static/index.html
-	indexHTML []byte
-	//go:embed static/style.css
-	styleCSS []byte
-	//go:embed static/main.js
-	mainJS []byte
-	//go:embed static/favicon.ico
-	favicon []byte
-)
+func (s *Server) handleTimerStart(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t, found, err := s.tmStorage.Find(req.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		http.Error(w, "Timer not found.", http.StatusNotFound)
+		return
+	}
+
+	t.Started = time.Now()
+	t.Acked = t.Started
+	t.Active = true
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) started.", t.Name, t.ID)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleTimerStop(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t, found, err := s.tmStorage.Find(req.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		http.Error(w, "Timer not found.", http.StatusNotFound)
+		return
+	}
+
+	t.Started = time.Time{}
+	t.Acked = t.Started
+	t.Active = false
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) stopped.", t.Name, t.ID)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleTimerAck(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t, found, err := s.tmStorage.Find(req.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		http.Error(w, "Timer not found.", http.StatusNotFound)
+		return
+	}
+
+	t.Acked = t.Started.Add(t.Period * (time.Since(t.Started) / t.Period))
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) acked.", t.Name, t.ID)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleTimerLoop(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID   string `json:"id"`
+		Loop bool   `json:"loop"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t, found, err := s.tmStorage.Find(req.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		http.Error(w, "Timer not found.", http.StatusNotFound)
+		return
+	}
+
+	t.Loop = req.Loop
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) loop set to %v.", t.Name, t.ID, req.Loop)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleTimerSound(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID    string `json:"id"`
+		Sound bool   `json:"sound"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t, found, err := s.tmStorage.Find(req.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		http.Error(w, "Timer not found.", http.StatusNotFound)
+		return
+	}
+
+	t.Sound = req.Sound
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) sound set to %v.", t.Name, t.ID, req.Sound)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleTimerList(w http.ResponseWriter, r *http.Request) {
+	timers, err := s.tmStorage.List()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type timerJSON struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Period    int    `json:"period"`
+		Active    bool   `json:"active"`
+		Loop      bool   `json:"loop"`
+		Sound     bool   `json:"sound"`
+		Firing    bool   `json:"firing"`
+		Remaining int    `json:"remaining"`
+	}
+
+	out := []timerJSON{} // JSON nil != empty slice.
+	for _, t := range timers {
+		firing := t.Active && t.Acked.Add(t.Period).Before(time.Now())
+		lastLoopStarted := t.Started.Add(t.Period)
+		if t.Loop {
+			lastLoopStarted = lastLoopStarted.Add(t.Period * (time.Since(t.Started) / t.Period))
+		}
+		remaining := max(time.Until(lastLoopStarted), 0)
+
+		out = append(out, timerJSON{
+			ID:        t.ID,
+			Name:      t.Name,
+			Period:    int(t.Period / time.Second),
+			Active:    t.Active,
+			Loop:      t.Loop,
+			Sound:     t.Sound,
+			Firing:    firing,
+			Remaining: int(remaining / time.Second),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
+func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
+	f := r.URL.Path
+	if f == "/" {
+		f = "/index.html"
+	}
+
+	content, err := staticData.ReadFile(path.Join("static", f))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", contentType(f))
+	if _, err := w.Write(content); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+//go:embed static/*
+var staticData embed.FS
+
+func contentType(fName string) string {
+	split := strings.Split(fName, ".")
+	ext := split[len(split)-1]
+
+	switch ext {
+	case "", "html":
+		return "text/html; charset=utf-8"
+	case "js":
+		return "application/javascript; charset=utf-8"
+	case "css":
+		return "text/css; charset=utf-8"
+	case "ico":
+		return "image/x-icon"
+	case "mp3":
+		return "audio/mp3"
+	default:
+		return "text/plain; charset=utf-8"
+	}
+}

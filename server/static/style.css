@@ -316,6 +316,131 @@ body {
     background: #175c36;
 }
 
+/* Timers tab */
+
+.timer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.timer-entry {
+    display: flex;
+    align-items: center;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 10px 14px;
+    gap: 8px;
+    transition: background .15s, border-color .15s;
+}
+
+.timer-entry:hover {
+    background: #1a2a50;
+    border-color: #e94560;
+}
+
+.timer-name {
+    flex: 1;
+    min-width: 0;
+    font-size: .95rem;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timer-remaining {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #53d769;
+    background: #0d1a2d;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    padding: 4px 10px;
+    min-width: 80px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.timer-entry-firing {
+    border-color: #ff4444;
+    animation: timer-pulse 1s ease-in-out infinite;
+}
+
+.timer-remaining.timer-inactive {
+    color: #666;
+}
+
+@keyframes timer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.timer-loop-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .75rem;
+    color: #888;
+    cursor: pointer;
+    user-select: none;
+}
+
+.timer-loop-label input[type="checkbox"] {
+    accent-color: #e94560;
+    cursor: pointer;
+}
+
+.timer-btn {
+    padding: 4px 10px;
+}
+
+.timer-add-entry {
+    display: flex;
+    align-items: center;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 10px 14px;
+    gap: 8px;
+}
+
+.timer-add-name {
+    flex: 1;
+    font-size: .85rem;
+    outline: none;
+    background: transparent;
+    color: #e0e0e0;
+    border: none;
+    border-bottom: 1px solid transparent;
+    padding: 2px 0;
+    font-family: inherit;
+    min-width: 0;
+}
+
+.timer-add-name:focus {
+    border-bottom-color: #e94560;
+}
+
+.timer-add-period {
+    width: 70px;
+    font-size: .85rem;
+    outline: none;
+    background: transparent;
+    color: #e0e0e0;
+    border: none;
+    border-bottom: 1px solid transparent;
+    padding: 2px 0;
+    font-family: inherit;
+    text-align: center;
+}
+
+.timer-add-period:focus {
+    border-bottom-color: #e94560;
+}
+
 /* Help tab */
 
 .help-content {

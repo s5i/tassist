@@ -18,6 +18,7 @@ import (
 	"github.com/s5i/tassist/ping"
 	"github.com/s5i/tassist/server"
 	"github.com/s5i/tassist/settings"
+	"github.com/s5i/tassist/timer"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -107,7 +108,13 @@ func mainErr() (retErr error) {
 		return err
 	}
 
-	srv, err := server.New(*tmpDir, accStorage, expCache, pinger, online, ver, stStorage)
+	tmStorage, err := timer.NewStorage(*dir)
+	if err != nil {
+		log.Printf("timer.NewStorage() failed: %v", err)
+		return err
+	}
+
+	srv, err := server.New(*tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage)
 	if err != nil {
 		log.Printf("server.New() failed: %v", err)
 		return err
