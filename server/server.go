@@ -577,6 +577,8 @@ func (s *Server) handleTimerAdd(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name   string `json:"name"`
 		Period string `json:"period"`
+		Loop   bool   `json:"loop"`
+		Sound  bool   `json:"sound"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -597,6 +599,8 @@ func (s *Server) handleTimerAdd(w http.ResponseWriter, r *http.Request) {
 		ID:     uuid.New().String()[:8],
 		Name:   req.Name,
 		Period: period,
+		Loop:   req.Loop,
+		Sound:  req.Sound,
 	}
 
 	if err := s.tmStorage.AddOrUpdate(t); err != nil {

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.23 - 2026-05-23
+
+- Add timers.
+
 ## v0.0.22 - 2026-05-21
 
 - Tweak the threshold for "Experience" label detection again...

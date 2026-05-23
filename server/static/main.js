@@ -393,12 +393,11 @@ const preset = {
 const timers = {
     beepAudio: null,
     beepPlaying: false,
-    rows: new Map(), // id -> { el, nameEl, remainEl, loopCb, soundCb, startStopEl }
+    rows: new Map(),
     run: function () {
         timers.beepAudio = new Audio('/beep.mp3');
         timers.beepAudio.loop = true;
 
-        // Build the add-new row once.
         const listEl = document.getElementById('timer-list');
         const addEl = document.createElement('div');
         listEl.appendChild(addEl);
@@ -409,16 +408,81 @@ const timers = {
         nameInput.classList.add('timer-add-name');
         nameInput.placeholder = 'Timer name';
 
-        const periodInput = document.createElement('input');
-        addEl.appendChild(periodInput);
-        periodInput.classList.add('timer-add-period');
-        periodInput.placeholder = 'e.g. 2m30s';
+        const hmsBox = document.createElement('div');
+        addEl.appendChild(hmsBox);
+        hmsBox.classList.add('timer-add-hms');
+
+        const hInput = document.createElement('input');
+        hInput.type = 'number';
+        hInput.min = '0';
+        hInput.max = '99';
+        hInput.placeholder = '00';
+        hInput.classList.add('timer-add-hms-input');
+        hmsBox.appendChild(hInput);
+
+        const sep1 = document.createElement('span');
+        sep1.textContent = ':';
+        sep1.classList.add('timer-add-hms-sep');
+        hmsBox.appendChild(sep1);
+
+        const mInput = document.createElement('input');
+        mInput.type = 'number';
+        mInput.min = '0';
+        mInput.max = '59';
+        mInput.placeholder = '00';
+        mInput.classList.add('timer-add-hms-input');
+        hmsBox.appendChild(mInput);
+
+        const sep2 = document.createElement('span');
+        sep2.textContent = ':';
+        sep2.classList.add('timer-add-hms-sep');
+        hmsBox.appendChild(sep2);
+
+        const sInput = document.createElement('input');
+        sInput.type = 'number';
+        sInput.min = '0';
+        sInput.max = '59';
+        sInput.placeholder = '00';
+        sInput.classList.add('timer-add-hms-input');
+        hmsBox.appendChild(sInput);
+
+        [hInput, mInput, sInput].forEach((el, i, arr) => {
+            el.addEventListener('input', () => {
+                if (el.value.length >= 2 && i < arr.length - 1) {
+                    arr[i + 1].focus();
+                    arr[i + 1].select();
+                }
+            });
+            el.addEventListener('click', () => {
+                arr[i].select();
+            });
+        });
+
+        const checksGroup = document.createElement('div');
+        addEl.appendChild(checksGroup);
+        checksGroup.classList.add('timer-checks-group');
+
+        const loopLabel = document.createElement('label');
+        checksGroup.appendChild(loopLabel);
+        loopLabel.classList.add('timer-loop-label');
+        const addLoopCb = document.createElement('input');
+        addLoopCb.type = 'checkbox';
+        loopLabel.appendChild(addLoopCb);
+        loopLabel.appendChild(document.createTextNode('Loop'));
+
+        const soundLabel = document.createElement('label');
+        checksGroup.appendChild(soundLabel);
+        soundLabel.classList.add('timer-loop-label');
+        const addSoundCb = document.createElement('input');
+        addSoundCb.type = 'checkbox';
+        soundLabel.appendChild(addSoundCb);
+        soundLabel.appendChild(document.createTextNode('Sound'));
 
         const addBtn = document.createElement('button');
         addEl.appendChild(addBtn);
         addBtn.textContent = 'Add';
         addBtn.classList.add('btn', 'timer-btn');
-        addBtn.addEventListener('click', () => timers.hdlAdd(nameInput, periodInput));
+        addBtn.addEventListener('click', () => timers.hdlAdd(nameInput, hInput, mInput, sInput, addLoopCb, addSoundCb));
 
         timers.addRowEl = addEl;
 
@@ -494,7 +558,6 @@ const timers = {
         refs.removeEl.onclick = () => timers.hdlRemove(t.id, t.name);
     },
     rebuildAll: async function () {
-        // Destroy all existing rows and recreate from scratch.
         for (const [, refs] of timers.rows) refs.entryEl.remove();
         timers.rows.clear();
 
@@ -520,6 +583,10 @@ const timers = {
         timers.updateBeep(d);
     },
     updateBeep: function (d) {
+        const anyFiring = d.some(t => t.firing);
+        const timersTabBtn = document.querySelector('.tab-btn[data-tab="timers"]');
+        if (timersTabBtn) timersTabBtn.classList.toggle('tab-btn-firing', anyFiring);
+
         const shouldBeep = d.some(t => t.firing && t.sound);
         if (shouldBeep && !timers.beepPlaying) {
             timers.beepAudio.currentTime = 0;
@@ -568,18 +635,31 @@ const timers = {
             toast.msg('Error: ' + await r.text());
         }
     },
-    hdlAdd: async function (nameInput, periodInput) {
+    hdlAdd: async function (nameInput, hInput, mInput, sInput, loopCb, soundCb) {
         const name = nameInput.value.trim();
-        const period = periodInput.value.trim();
-        if (!name || !period) {
-            toast.msg('Name and period are required.');
+        const h = parseInt(hInput.value) || 0;
+        const m = parseInt(mInput.value) || 0;
+        const s = parseInt(sInput.value) || 0;
+        const totalSec = h * 3600 + m * 60 + s;
+        if (!name || totalSec <= 0) {
+            toast.msg('Name and a positive duration are required.');
             return;
         }
-        const r = await fetch('/api/timers/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, period }) });
+        let period = '';
+        if (h > 0) period += `${h}h`;
+        if (m > 0) period += `${m}m`;
+        if (s > 0 || period === '') period += `${s}s`;
+        const loop = loopCb.checked;
+        const sound = soundCb.checked;
+        const r = await fetch('/api/timers/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, period, loop, sound }) });
         if (r.ok) {
             toast.msg(`Timer "${name}" added.`);
             nameInput.value = '';
-            periodInput.value = '';
+            hInput.value = '';
+            mInput.value = '';
+            sInput.value = '';
+            loopCb.checked = false;
+            soundCb.checked = false;
             timers.rebuildAll();
         } else {
             toast.msg('Error: ' + await r.text());

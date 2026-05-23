@@ -16,8 +16,6 @@ body {
     min-height: 100vh;
 }
 
-/* Tab bar */
-
 .tab-bar {
     position: fixed;
     top: 0;
@@ -57,6 +55,12 @@ body {
     border-bottom-color: #e94560;
 }
 
+.tab-btn.tab-btn-firing {
+    color: #ff4444;
+    border-bottom-color: #ff4444;
+    animation: timer-pulse 1s ease-in-out infinite;
+}
+
 .preset-indicator {
     margin-left: auto;
     font-size: .8rem;
@@ -72,8 +76,6 @@ body {
     display: none;
 }
 
-/* Tab content */
-
 .tab-content-area {
     width: 100%;
     display: flex;
@@ -84,7 +86,7 @@ body {
 .tab-panel {
     display: none;
     width: 100%;
-    max-width: 540px;
+    max-width: 700px;
 }
 
 .tab-panel-active {
@@ -316,8 +318,6 @@ body {
     background: #175c36;
 }
 
-/* Timers tab */
-
 .timer-list {
     display: flex;
     flex-direction: column;
@@ -341,13 +341,13 @@ body {
 }
 
 .timer-name {
-    flex: 1;
-    min-width: 0;
+    width: 30%;
     font-size: .95rem;
     color: #e0e0e0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin: 0 5px;
 }
 
 .timer-remaining {
@@ -359,10 +359,11 @@ body {
     border: 1px solid #0f3460;
     border-radius: 6px;
     padding: 4px 10px;
-    min-width: 80px;
+    width: 20%;
     text-align: center;
     white-space: nowrap;
-    margin: 0 10px;
+    flex-shrink: 0;
+    margin: 0 5px;
 }
 
 .timer-entry-firing {
@@ -409,7 +410,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin: 0 10px;
+    width: 20%;
+    flex-shrink: 0;
+    margin: 0 5px;
 }
 
 .timer-btn {
@@ -424,11 +427,12 @@ body {
     border-radius: 8px;
     padding: 10px 14px;
     gap: 8px;
+    transition: background .15s, border-color .15s;
 }
 
 .timer-add-name {
-    flex: 1;
-    font-size: .85rem;
+    width: 30%;
+    font-size: .95rem;
     outline: none;
     background: transparent;
     color: #e0e0e0;
@@ -436,31 +440,67 @@ body {
     border-bottom: 1px solid transparent;
     padding: 2px 0;
     font-family: inherit;
-    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 5px;
 }
 
 .timer-add-name:focus {
     border-bottom-color: #e94560;
 }
 
-.timer-add-period {
-    width: 70px;
+.timer-add-hms {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Consolas', 'Courier New', monospace;
     font-size: .85rem;
-    outline: none;
-    background: transparent;
-    color: #e0e0e0;
-    border: none;
-    border-bottom: 1px solid transparent;
-    padding: 2px 0;
-    font-family: inherit;
+    font-weight: 600;
+    color: #666;
+    background: #0d1a2d;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    padding: 2px 5px;
+    width: 20%;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin: 0 5px;
+}
+
+.timer-add-hms-input {
+    width: 2ch;
     text-align: center;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
-.timer-add-period:focus {
-    border-bottom-color: #e94560;
+.timer-add-hms-input:focus {
+    color: #53d769;
 }
 
-/* Help tab */
+.timer-add-hms-input::placeholder {
+    color: #444;
+}
+
+.timer-add-hms-input::-webkit-outer-spin-button,
+.timer-add-hms-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.timer-add-hms-sep {
+    color: #444;
+    pointer-events: none;
+}
 
 .help-content {
     font-size: .85rem;
