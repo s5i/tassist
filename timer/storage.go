@@ -110,6 +110,7 @@ type Timer struct {
 	Active  bool          `yaml:"active"`
 	Loop    bool          `yaml:"loop"`
 	Sound   bool          `yaml:"sound"`
+	AutoAck bool          `yaml:"auto_ack"`
 	Started time.Time     `yaml:"started"`
 	Acked   time.Time     `yaml:"acked"`
 }

@@ -37,8 +37,9 @@ import (
 
 var ErrRestart = fmt.Errorf("server is restarting...")
 
-func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage) (*Server, error) {
+func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage) (*Server, error) {
 	s := &Server{
+		dataDir:              dataDir,
 		tmpDir:               tmpDir,
 		acc:                  accStorage,
 		exp:                  expCache,
@@ -54,6 +55,7 @@ func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *pi
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/beep.mp3", s.handleBeep)
 	mux.HandleFunc("/", s.handleStatic)
 	mux.HandleFunc("/api/keepalive", s.handleKeepalive)
 	mux.HandleFunc("/api/version", s.handleVersion)
@@ -80,6 +82,7 @@ func New(tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *pi
 	mux.HandleFunc("/api/timers/ack", s.handleTimerAck)
 	mux.HandleFunc("/api/timers/loop", s.handleTimerLoop)
 	mux.HandleFunc("/api/timers/sound", s.handleTimerSound)
+	mux.HandleFunc("/api/timers/autoack", s.handleTimerAutoAck)
 	mux.HandleFunc("/api/timers/remove", s.handleTimerRemove)
 	mux.HandleFunc("/api/timers/list", s.handleTimerList)
 	s.mux = mux
@@ -153,6 +156,7 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 type Server struct {
+	dataDir   string
 	tmpDir    string
 	acc       *acc.Storage
 	exp       *exp.Cache
@@ -575,10 +579,11 @@ func (s *Server) handleTimerAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name   string `json:"name"`
-		Period string `json:"period"`
-		Loop   bool   `json:"loop"`
-		Sound  bool   `json:"sound"`
+		Name    string `json:"name"`
+		Period  string `json:"period"`
+		Loop    bool   `json:"loop"`
+		Sound   bool   `json:"sound"`
+		AutoAck bool   `json:"auto_ack"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -596,11 +601,12 @@ func (s *Server) handleTimerAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := &timer.Timer{
-		ID:     uuid.New().String()[:8],
-		Name:   req.Name,
-		Period: period,
-		Loop:   req.Loop,
-		Sound:  req.Sound,
+		ID:      uuid.New().String()[:8],
+		Name:    req.Name,
+		Period:  period,
+		Loop:    req.Loop,
+		Sound:   req.Sound,
+		AutoAck: req.AutoAck,
 	}
 
 	if err := s.tmStorage.AddOrUpdate(t); err != nil {
@@ -811,6 +817,43 @@ func (s *Server) handleTimerSound(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{}"))
 }
 
+func (s *Server) handleTimerAutoAck(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID      string `json:"id"`
+		AutoAck bool   `json:"auto_ack"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t, found, err := s.tmStorage.Find(req.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		http.Error(w, "Timer not found.", http.StatusNotFound)
+		return
+	}
+
+	t.AutoAck = req.AutoAck
+
+	if err := s.tmStorage.AddOrUpdate(t); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Timer %q (ID=%q) auto_ack set to %v.", t.Name, t.ID, req.AutoAck)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
 func (s *Server) handleTimerRemove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -849,6 +892,7 @@ func (s *Server) handleTimerList(w http.ResponseWriter, r *http.Request) {
 		Active    bool   `json:"active"`
 		Loop      bool   `json:"loop"`
 		Sound     bool   `json:"sound"`
+		AutoAck   bool   `json:"auto_ack"`
 		Firing    bool   `json:"firing"`
 		Remaining int    `json:"remaining"`
 	}
@@ -869,6 +913,7 @@ func (s *Server) handleTimerList(w http.ResponseWriter, r *http.Request) {
 			Active:    t.Active,
 			Loop:      t.Loop,
 			Sound:     t.Sound,
+			AutoAck:   t.AutoAck,
 			Firing:    firing,
 			Remaining: int(remaining / time.Second),
 		})
@@ -876,6 +921,20 @@ func (s *Server) handleTimerList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
+}
+
+func (s *Server) handleBeep(w http.ResponseWriter, r *http.Request) {
+	content, err := os.ReadFile(filepath.Join(s.dataDir, "beep.mp3"))
+	if err != nil {
+		s.handleStatic(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", contentType("/beep.mp3"))
+	if _, err := w.Write(content); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {

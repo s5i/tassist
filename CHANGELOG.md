@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.24 - 2026-06-06
+
+- Timers: Minor UI tweaks.
+- Timers: Added AutoAck option that automatically dismisses firing timers (but lets a single beep go through).
+- Timers: Added support for custom beep sounds.
+
 ## v0.0.23 - 2026-05-23
 
 - Add timers.

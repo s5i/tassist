@@ -408,6 +408,34 @@ const timers = {
         nameInput.classList.add('timer-add-name');
         nameInput.placeholder = 'Timer name';
 
+        const toggleGroup = document.createElement('div');
+        addEl.appendChild(toggleGroup);
+        toggleGroup.classList.add('timer-toggle-group');
+
+        const addLoopBtn = document.createElement('button');
+        addLoopBtn.type = 'button';
+        addLoopBtn.textContent = 'Loop';
+        addLoopBtn.classList.add('btn', 'timer-btn', 'timer-toggle-btn');
+        toggleGroup.appendChild(addLoopBtn);
+        timers.setToggleBtn(addLoopBtn, false);
+        addLoopBtn.addEventListener('click', () => timers.setToggleBtn(addLoopBtn, !addLoopBtn.classList.contains('timer-toggle-on')));
+
+        const addSoundBtn = document.createElement('button');
+        addSoundBtn.type = 'button';
+        addSoundBtn.textContent = 'Sound';
+        addSoundBtn.classList.add('btn', 'timer-btn', 'timer-toggle-btn');
+        toggleGroup.appendChild(addSoundBtn);
+        timers.setToggleBtn(addSoundBtn, false);
+        addSoundBtn.addEventListener('click', () => timers.setToggleBtn(addSoundBtn, !addSoundBtn.classList.contains('timer-toggle-on')));
+
+        const addAutoAckBtn = document.createElement('button');
+        addAutoAckBtn.type = 'button';
+        addAutoAckBtn.textContent = 'AutoAck';
+        addAutoAckBtn.classList.add('btn', 'timer-btn', 'timer-toggle-btn');
+        toggleGroup.appendChild(addAutoAckBtn);
+        timers.setToggleBtn(addAutoAckBtn, false);
+        addAutoAckBtn.addEventListener('click', () => timers.setToggleBtn(addAutoAckBtn, !addAutoAckBtn.classList.contains('timer-toggle-on')));
+
         const hmsBox = document.createElement('div');
         addEl.appendChild(hmsBox);
         hmsBox.classList.add('timer-add-hms');
@@ -458,31 +486,15 @@ const timers = {
             });
         });
 
-        const checksGroup = document.createElement('div');
-        addEl.appendChild(checksGroup);
-        checksGroup.classList.add('timer-checks-group');
-
-        const loopLabel = document.createElement('label');
-        checksGroup.appendChild(loopLabel);
-        loopLabel.classList.add('timer-loop-label');
-        const addLoopCb = document.createElement('input');
-        addLoopCb.type = 'checkbox';
-        loopLabel.appendChild(addLoopCb);
-        loopLabel.appendChild(document.createTextNode('Loop'));
-
-        const soundLabel = document.createElement('label');
-        checksGroup.appendChild(soundLabel);
-        soundLabel.classList.add('timer-loop-label');
-        const addSoundCb = document.createElement('input');
-        addSoundCb.type = 'checkbox';
-        soundLabel.appendChild(addSoundCb);
-        soundLabel.appendChild(document.createTextNode('Sound'));
+        const btnGroup = document.createElement('div');
+        addEl.appendChild(btnGroup);
+        btnGroup.classList.add('timer-btn-group');
 
         const addBtn = document.createElement('button');
-        addEl.appendChild(addBtn);
+        btnGroup.appendChild(addBtn);
         addBtn.textContent = 'Add';
         addBtn.classList.add('btn', 'timer-btn');
-        addBtn.addEventListener('click', () => timers.hdlAdd(nameInput, hInput, mInput, sInput, addLoopCb, addSoundCb));
+        addBtn.addEventListener('click', () => timers.hdlAdd(nameInput, hInput, mInput, sInput, addLoopBtn, addSoundBtn, addAutoAckBtn));
 
         timers.addRowEl = addEl;
 
@@ -490,6 +502,10 @@ const timers = {
         timers.rebuildAll();
     },
     addRowEl: null,
+    setToggleBtn: function (btn, on) {
+        btn.classList.toggle('timer-toggle-on', on);
+        btn.classList.toggle('timer-toggle-off', !on);
+    },
     createRow: function (id) {
         const listEl = document.getElementById('timer-list');
 
@@ -498,7 +514,7 @@ const timers = {
         entryEl.classList.add('timer-entry');
         entryEl.dataset.id = id;
         entryEl.addEventListener('click', (ev) => {
-            if (ev.target.closest('button, input, label')) return;
+            if (ev.target.closest('button, input')) return;
             timers.hdlAck(id);
         });
 
@@ -506,42 +522,61 @@ const timers = {
         entryEl.appendChild(nameEl);
         nameEl.classList.add('timer-name');
 
+        const toggleGroup = document.createElement('div');
+        entryEl.appendChild(toggleGroup);
+        toggleGroup.classList.add('timer-toggle-group');
+
+        const loopBtn = document.createElement('button');
+        loopBtn.type = 'button';
+        loopBtn.textContent = 'Loop';
+        loopBtn.classList.add('btn', 'timer-btn', 'timer-toggle-btn');
+        toggleGroup.appendChild(loopBtn);
+        loopBtn.addEventListener('click', () => {
+            const on = !loopBtn.classList.contains('timer-toggle-on');
+            timers.setToggleBtn(loopBtn, on);
+            timers.hdlLoop(id, on);
+        });
+
+        const soundBtn = document.createElement('button');
+        soundBtn.type = 'button';
+        soundBtn.textContent = 'Sound';
+        soundBtn.classList.add('btn', 'timer-btn', 'timer-toggle-btn');
+        toggleGroup.appendChild(soundBtn);
+        soundBtn.addEventListener('click', () => {
+            const on = !soundBtn.classList.contains('timer-toggle-on');
+            timers.setToggleBtn(soundBtn, on);
+            timers.hdlSound(id, on);
+        });
+
+        const autoAckBtn = document.createElement('button');
+        autoAckBtn.type = 'button';
+        autoAckBtn.textContent = 'AutoAck';
+        autoAckBtn.classList.add('btn', 'timer-btn', 'timer-toggle-btn');
+        toggleGroup.appendChild(autoAckBtn);
+        autoAckBtn.addEventListener('click', () => {
+            const on = !autoAckBtn.classList.contains('timer-toggle-on');
+            timers.setToggleBtn(autoAckBtn, on);
+            timers.hdlAutoAck(id, on);
+        });
+
         const remainEl = document.createElement('span');
         entryEl.appendChild(remainEl);
         remainEl.classList.add('timer-remaining');
 
-        const checksGroup = document.createElement('div');
-        entryEl.appendChild(checksGroup);
-        checksGroup.classList.add('timer-checks-group');
-
-        const loopLabel = document.createElement('label');
-        checksGroup.appendChild(loopLabel);
-        loopLabel.classList.add('timer-loop-label');
-        const loopCb = document.createElement('input');
-        loopCb.type = 'checkbox';
-        loopCb.addEventListener('change', () => timers.hdlLoop(id, loopCb.checked));
-        loopLabel.appendChild(loopCb);
-        loopLabel.appendChild(document.createTextNode('Loop'));
-
-        const soundLabel = document.createElement('label');
-        checksGroup.appendChild(soundLabel);
-        soundLabel.classList.add('timer-loop-label');
-        const soundCb = document.createElement('input');
-        soundCb.type = 'checkbox';
-        soundCb.addEventListener('change', () => timers.hdlSound(id, soundCb.checked));
-        soundLabel.appendChild(soundCb);
-        soundLabel.appendChild(document.createTextNode('Sound'));
+        const btnGroup = document.createElement('div');
+        entryEl.appendChild(btnGroup);
+        btnGroup.classList.add('timer-btn-group');
 
         const startStopEl = document.createElement('button');
-        entryEl.appendChild(startStopEl);
+        btnGroup.appendChild(startStopEl);
         startStopEl.classList.add('btn', 'timer-btn');
 
         const removeEl = document.createElement('button');
-        entryEl.appendChild(removeEl);
+        btnGroup.appendChild(removeEl);
         removeEl.textContent = 'Remove';
         removeEl.classList.add('btn', 'timer-btn');
 
-        const refs = { entryEl, nameEl, remainEl, loopCb, soundCb, startStopEl, removeEl };
+        const refs = { entryEl, nameEl, remainEl, loopBtn, soundBtn, autoAckBtn, startStopEl, removeEl };
         timers.rows.set(id, refs);
         return refs;
     },
@@ -551,8 +586,9 @@ const timers = {
         refs.remainEl.classList.toggle('timer-inactive', !t.active);
         refs.remainEl.classList.toggle('timer-firing', t.active && t.firing);
         refs.entryEl.classList.toggle('timer-entry-firing', t.active && t.firing);
-        refs.loopCb.checked = t.loop;
-        refs.soundCb.checked = t.sound;
+        timers.setToggleBtn(refs.loopBtn, t.loop);
+        timers.setToggleBtn(refs.soundBtn, t.sound);
+        timers.setToggleBtn(refs.autoAckBtn, t.auto_ack);
         refs.startStopEl.textContent = t.active ? 'Stop' : 'Start';
         refs.startStopEl.onclick = () => t.active ? timers.hdlStop(t.id) : timers.hdlStart(t.id);
         refs.removeEl.onclick = () => timers.hdlRemove(t.id, t.name);
@@ -581,6 +617,14 @@ const timers = {
             if (refs) timers.updateRow(refs, t);
         }
         timers.updateBeep(d);
+        timers.maybeAutoAck(d);
+    },
+    maybeAutoAck: function (d) {
+        for (const t of d) {
+            if (t.firing && t.auto_ack) {
+                timers.hdlAck(t.id);
+            }
+        }
     },
     updateBeep: function (d) {
         const anyFiring = d.some(t => t.firing);
@@ -625,6 +669,10 @@ const timers = {
         const r = await fetch('/api/timers/sound', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, sound }) });
         if (!r.ok) toast.msg('Error: ' + await r.text());
     },
+    hdlAutoAck: async function (id, auto_ack) {
+        const r = await fetch('/api/timers/autoack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, auto_ack }) });
+        if (!r.ok) toast.msg('Error: ' + await r.text());
+    },
     hdlRemove: async function (id, name) {
         if (!confirm(`Remove timer "${name}"?`)) return;
         const r = await fetch('/api/timers/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
@@ -635,7 +683,7 @@ const timers = {
             toast.msg('Error: ' + await r.text());
         }
     },
-    hdlAdd: async function (nameInput, hInput, mInput, sInput, loopCb, soundCb) {
+    hdlAdd: async function (nameInput, hInput, mInput, sInput, loopBtn, soundBtn, autoAckBtn) {
         const name = nameInput.value.trim();
         const h = parseInt(hInput.value) || 0;
         const m = parseInt(mInput.value) || 0;
@@ -649,17 +697,19 @@ const timers = {
         if (h > 0) period += `${h}h`;
         if (m > 0) period += `${m}m`;
         if (s > 0 || period === '') period += `${s}s`;
-        const loop = loopCb.checked;
-        const sound = soundCb.checked;
-        const r = await fetch('/api/timers/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, period, loop, sound }) });
+        const loop = loopBtn.classList.contains('timer-toggle-on');
+        const sound = soundBtn.classList.contains('timer-toggle-on');
+        const auto_ack = autoAckBtn.classList.contains('timer-toggle-on');
+        const r = await fetch('/api/timers/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, period, loop, sound, auto_ack }) });
         if (r.ok) {
             toast.msg(`Timer "${name}" added.`);
             nameInput.value = '';
             hInput.value = '';
             mInput.value = '';
             sInput.value = '';
-            loopCb.checked = false;
-            soundCb.checked = false;
+            timers.setToggleBtn(loopBtn, false);
+            timers.setToggleBtn(soundBtn, false);
+            timers.setToggleBtn(autoAckBtn, false);
             timers.rebuildAll();
         } else {
             toast.msg('Error: ' + await r.text());

@@ -319,19 +319,22 @@ body {
 }
 
 .timer-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 7.5rem max-content 5.75rem max-content;
+    column-gap: 40px;
+    row-gap: 8px;
 }
 
-.timer-entry {
-    display: flex;
+.timer-entry,
+.timer-add-entry {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     align-items: center;
     background: #16213e;
     border: 1px solid #0f3460;
     border-radius: 8px;
     padding: 10px 14px;
-    gap: 8px;
     transition: background .15s, border-color .15s;
 }
 
@@ -340,30 +343,38 @@ body {
     border-color: #e94560;
 }
 
-.timer-name {
-    width: 30%;
+.timer-name,
+.timer-add-name {
+    min-width: 0;
+    width: 100%;
     font-size: .95rem;
     color: #e0e0e0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin: 0 5px;
 }
 
-.timer-remaining {
+.timer-name {
+    display: block;
+}
+
+.timer-remaining,
+.timer-add-hms {
+    box-sizing: border-box;
+    width: 100%;
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: .85rem;
     font-weight: 600;
-    color: #53d769;
     background: #0d1a2d;
     border: 1px solid #0f3460;
     border-radius: 6px;
-    padding: 4px 10px;
-    width: 20%;
     text-align: center;
     white-space: nowrap;
-    flex-shrink: 0;
-    margin: 0 5px;
+}
+
+.timer-remaining {
+    color: #53d769;
+    padding: 4px 10px;
 }
 
 .timer-entry-firing {
@@ -391,59 +402,58 @@ body {
     }
 }
 
-.timer-loop-label {
+.timer-toggle-btn {
+    font-size: .75rem;
+}
+
+.timer-toggle-on {
+    background: #175c36;
+    border-color: #53d769;
+    color: #e0e0e0;
+}
+
+.timer-toggle-on:hover {
+    background: #1e7044;
+    border-color: #7fff9a;
+    color: #fff;
+}
+
+.timer-toggle-off {
+    background: #5c1717;
+    border-color: #ff4444;
+    color: #ccc;
+}
+
+.timer-toggle-off:hover {
+    background: #702020;
+    border-color: #ff6666;
+    color: #fff;
+}
+
+.timer-toggle-group {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: .75rem;
-    color: #888;
-    cursor: pointer;
-    user-select: none;
 }
 
-.timer-loop-label input[type="checkbox"] {
-    accent-color: #e94560;
-    cursor: pointer;
-}
-
-.timer-checks-group {
+.timer-btn-group {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    width: 20%;
-    flex-shrink: 0;
-    margin: 0 5px;
+    align-items: center;
+    gap: 4px;
 }
 
 .timer-btn {
     padding: 4px 10px;
-}
-
-.timer-add-entry {
-    display: flex;
-    align-items: center;
-    background: #16213e;
-    border: 1px solid #0f3460;
-    border-radius: 8px;
-    padding: 10px 14px;
-    gap: 8px;
-    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
 }
 
 .timer-add-name {
-    width: 30%;
-    font-size: .95rem;
     outline: none;
     background: transparent;
-    color: #e0e0e0;
     border: none;
     border-bottom: 1px solid transparent;
     padding: 2px 0;
     font-family: inherit;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0 5px;
 }
 
 .timer-add-name:focus {
@@ -454,18 +464,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: .85rem;
-    font-weight: 600;
     color: #666;
-    background: #0d1a2d;
-    border: 1px solid #0f3460;
-    border-radius: 6px;
     padding: 2px 5px;
-    width: 20%;
-    white-space: nowrap;
-    flex-shrink: 0;
-    margin: 0 5px;
 }
 
 .timer-add-hms-input {

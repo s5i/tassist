@@ -19,6 +19,6 @@ Alternatively, you're free to audit and compile the code yourself:
 ![Tab list](https://raw.github.com/s5i/tassist/main/scr_tabs.png)
 ![Hunt tab](https://raw.github.com/s5i/tassist/main/scr_hunt.png)
 ![Accounts tab](https://raw.github.com/s5i/tassist/main/scr_accounts.png)
-![Timers tab](https://raw.github.com/s5i/tassist/main/scr_timers.png)
+![Timers tab](https://raw.github.com/s5i/tassist/main/scr_timers.gif)
 ![Settings tab](https://raw.github.com/s5i/tassist/main/scr_settings.png)
 ![Help tab](https://raw.github.com/s5i/tassist/main/scr_help.png)

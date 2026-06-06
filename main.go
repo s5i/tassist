@@ -114,7 +114,7 @@ func mainErr() (retErr error) {
 		return err
 	}
 
-	srv, err := server.New(*tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage)
+	srv, err := server.New(*dir, *tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage)
 	if err != nil {
 		log.Printf("server.New() failed: %v", err)
 		return err
