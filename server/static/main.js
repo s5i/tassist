@@ -309,7 +309,7 @@ const world = {
         }
 
         const packetLoss = parseFloat(d.packet_loss);
-        packetLossEl.textContent = world.fmtPacketLoss(packetLoss, d.ok);
+        packetLossEl.textContent = world.fmtPacketLoss(packetLoss);
         packetLossEl.classList.remove('ping-value-ok', 'ping-value-meh', 'ping-value-bad');
         if (packetLoss > 0.1) {
             packetLossEl.classList.add('ping-value-bad');
@@ -340,11 +340,11 @@ const world = {
         }
         return `${x}ms`;
     },
-    fmtPacketLoss: function (x, ok) {
-        if (!ok || isNaN(x)) {
+    fmtPacketLoss: function (x) {
+        if (isNaN(x)) {
             return '-';
         }
-        return `${(100.0 * x).toPrecision(1)}%`;
+        return `${(100.0 * x).toFixed(1)}%`;
     },
 };
 

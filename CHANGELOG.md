@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.25 - 2026-06-08
+
+- Hunt: fixed "Packet Loss" formatting.
+
 ## v0.0.24 - 2026-06-06
 
 - Timers: Minor UI tweaks.
