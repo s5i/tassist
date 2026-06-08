@@ -3,17 +3,10 @@
 
 !.gitignore
 !*.go
-!*.html
-!*.js
-!*.css
 !*.sh
-!*.png
-!*.yaml
-!*.ico
+!*.md
 !*/
 
 !/go.sum
 !/go.mod
-!/README.md
-!/CHANGELOG.md
 !/LICENSE
