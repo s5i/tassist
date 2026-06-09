@@ -15,7 +15,7 @@ import (
 )
 
 func New(stStorage *settings.Storage) (*Online, error) {
-	st := stStorage.Get()
+	st := stStorage.Preset()
 
 	return &Online{
 		domain:           st.OnlineSource.Domain,

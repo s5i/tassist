@@ -95,10 +95,16 @@
         </div>
 
         <div id="tab-settings" class="tab-panel">
-            <div class="container-column">
-                <div id="preset-container" class="container preset-container">
-                    <div class="container-title">World Presets</div>
-                    <div id="preset-list" class="preset-list"></div>
+            <div class="container-column settings-column">
+                <div class="settings-row">
+                    <div id="preset-container" class="container preset-container">
+                        <div class="container-title">World Presets</div>
+                        <div id="preset-list" class="preset-list"></div>
+                    </div>
+                    <div id="updater-container" class="container updater-container">
+                        <div class="container-title">Updater</div>
+                        <div id="updater-mode-group" class="preset-list"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -155,8 +161,13 @@
                         </ul>
                         <h1>Settings</h1>
                         <ul>
-                            <li>Clicking on a world name will reload TAssistant with settings tuned to a given world
+                            <li><strong>World presets</strong>: clicking on a world name will reload TAssistant with settings tuned to a given world
                                 (players online, server IPs, client window name, etc).</li>
+                            <li><strong>Updater mode</strong>:
+                                <strong>Automatic</strong> installs available updates at startup without prompting;
+                                <strong>Manual</strong> prompts when an update is available;
+                                <strong>Ignore</strong> disables update checks.</li>
+                            <li>When an update is available, you can click <strong>skip</strong> to ignore that specific version.</li>
                         </ul>
                         <h1>Technical details</h1>
                         <ul>

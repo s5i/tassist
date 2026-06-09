@@ -36,17 +36,37 @@ const version = {
 };
 
 const update = {
+    pendingVersion: undefined,
     run: async function () {
+        const settingsResp = await fetch('/api/update/settings');
+        if (!settingsResp.ok) return;
+        const settings = await settingsResp.json();
+
+        if (settings.mode !== 'Manual') return;
+
         const resp = await fetch('/api/update/check');
         if (!resp.ok) return;
-        const d = await resp.json()
+        const d = await resp.json();
         if (d.available) {
-            toast.msg(`TAssistant ${d.version} available (see <a href="https://github.com/s5i/tassist/blob/main/CHANGELOG.md" target="_blank" class="link">changelog</a>). Click <a onclick="update.exec();" class="link">here</a> to update.`, 60000);
+            update.pendingVersion = d.version;
+            toast.msg(`TAssistant ${d.version} available (see <a href="https://github.com/s5i/tassist/blob/main/CHANGELOG.md" target="_blank" class="link">changelog</a>). Click <a onclick="update.exec();" class="link">here</a> to update, or <a onclick="update.skip();" class="link">skip</a> this version.`, 60000);
         }
     },
     exec: async function () {
         fetch('/api/update/execute').then(() => { window.close(); });
-    }
+    },
+    skip: async function () {
+        const version = update.pendingVersion;
+        if (!version) return;
+
+        const r = await fetch('/api/update/skip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version }) });
+        if (r.ok) {
+            document.getElementById('toast').classList.remove('toast-visible');
+            toast.msg(`Skipped ${version}.`);
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
 };
 
 const tabs = {
@@ -375,6 +395,47 @@ const preset = {
     },
     fmtID: function (id) {
         return String(id).charAt(0).toUpperCase() + String(id).slice(1);
+    },
+};
+
+const updaterSettings = {
+    modes: ['Automatic', 'Manual', 'Ignore'],
+    run: function () {
+        const groupEl = document.getElementById('updater-mode-group');
+        for (const mode of updaterSettings.modes) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = mode;
+            btn.classList.add('btn', 'preset-btn');
+            btn.dataset.mode = mode;
+            btn.addEventListener('click', updaterSettings.hdlSelect);
+            groupEl.appendChild(btn);
+        }
+        updaterSettings.reload();
+    },
+    reload: async function () {
+        const resp = await fetch('/api/update/settings');
+        if (!resp.ok) return;
+        const d = await resp.json();
+        document.querySelectorAll('#updater-mode-group .preset-btn').forEach((btn) => {
+            btn.classList.toggle('preset-active', btn.dataset.mode === d.mode);
+        });
+    },
+    hdlSelect: async function (ev) {
+        const btn = ev.target.closest('.preset-btn');
+        const mode = btn.dataset.mode;
+
+        const r = await fetch('/api/update/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode }),
+        });
+        if (r.ok) {
+            updaterSettings.reload();
+        } else {
+            toast.msg('Error: ' + await r.text());
+            updaterSettings.reload();
+        }
     },
 };
 
@@ -707,6 +768,7 @@ const timers = {
 
 tabs.run();
 preset.run();
+updaterSettings.run();
 keepalive.run();
 version.run();
 update.run();

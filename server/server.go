@@ -74,8 +74,10 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 	mux.HandleFunc("/api/world/online", s.handleWorldOnline)
 	mux.HandleFunc("/api/preset/switch", s.handlePresetSwitch)
 	mux.HandleFunc("/api/preset/list", s.handlePresetList)
+	mux.HandleFunc("/api/update/settings", s.handleUpdateSettings)
 	mux.HandleFunc("/api/update/check", s.handleUpdateCheck)
 	mux.HandleFunc("/api/update/execute", s.handleUpdateExecute)
+	mux.HandleFunc("/api/update/skip", s.handleUpdateSkip)
 	mux.HandleFunc("/api/timers/add", s.handleTimerAdd)
 	mux.HandleFunc("/api/timers/start", s.handleTimerStart)
 	mux.HandleFunc("/api/timers/stop", s.handleTimerStop)
@@ -143,6 +145,11 @@ func (s *Server) Run(ctx context.Context) error {
 
 	eg.Go(func() error {
 		exec.Command("explorer", "http://"+s.ln.Addr().String()).Start()
+		return nil
+	})
+
+	eg.Go(func() error {
+		s.maybeAutoUpdate()
 		return nil
 	})
 
@@ -275,7 +282,7 @@ func (s *Server) handleAccLoad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := acc.RegRestore(s.stStorage.Get().RegistryPath, row.A, row.B, row.C); err != nil {
+	if err := acc.RegRestore(s.stStorage.Preset().RegistryPath, row.A, row.B, row.C); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -298,7 +305,7 @@ func (s *Server) handleAccStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, b, c, err := acc.RegSnapshot(s.stStorage.Get().RegistryPath)
+	a, b, c, err := acc.RegSnapshot(s.stStorage.Preset().RegistryPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -465,45 +472,138 @@ func (s *Server) handlePresetList(w http.ResponseWriter, r *http.Request) {
 		Active    string   `json:"active"`
 		Available []string `json:"available"`
 	}{
-		Active:    s.stStorage.Preset(),
+		Active:    s.stStorage.Preset().World,
 		Available: slices.Sorted(maps.Keys(settings.Presets)),
 	})
 }
 
-func (s *Server) handleUpdateExecute(w http.ResponseWriter, r *http.Request) {
-	s.updateMu.Lock()
-	defer s.updateMu.Unlock()
+func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			Mode        string `json:"mode"`
+			SkipVersion string `json:"skip_version,omitempty"`
+		}{
+			Mode:        s.stStorage.UpdaterMode(),
+			SkipVersion: s.stStorage.SkipVersion(),
+		})
+	case http.MethodPost:
+		var req struct {
+			Mode string `json:"mode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.stStorage.SetUpdaterMode(req.Mode); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("Updater mode set to %q.", req.Mode)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{}"))
+	default:
+		http.Error(w, "GET/POST only", http.StatusMethodNotAllowed)
+	}
+}
 
-	if !s.updateReady {
+func (s *Server) handleUpdateSkip(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Version string `json:"version"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Version == "" {
+		http.Error(w, "version is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.stStorage.SetSkipVersion(req.Version); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("Version %q skipped.", req.Version)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleUpdateExecute(w http.ResponseWriter, r *http.Request) {
+	if !s.performUpdateExecute() {
 		http.Error(w, "Update is not ready.", http.StatusNotFound)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{}"))
+}
+
+func (s *Server) maybeAutoUpdate() {
+	if s.stStorage.UpdaterMode() != settings.UpdaterModeAutomatic {
+		return
+	}
+
+	result := s.performUpdateCheck()
+	if !result.Available {
+		return
+	}
+
+	log.Printf("Auto-updating to %s...", result.Version)
+	s.performUpdateExecute()
+}
+
+func (s *Server) performUpdateExecute() bool {
+	s.updateMu.Lock()
+	defer s.updateMu.Unlock()
+
+	if !s.updateReady {
+		return false
+	}
 
 	go exec.Command("cmd", "/C", "start", s.updaterPath, os.Args[0], s.updaterSource).Run()
 	time.Sleep(3 * time.Second)
 
 	s.cancel()
+	return true
 }
 
 func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
-	ret := struct {
-		Available bool   `json:"available"`
-		Version   string `json:"version,omitempty"`
-	}{}
-
 	w.Header().Set("Content-Type", "application/json")
-	defer func() { json.NewEncoder(w).Encode(ret) }()
+
+	if s.stStorage.UpdaterMode() == settings.UpdaterModeIgnore {
+		json.NewEncoder(w).Encode(struct {
+			Available bool `json:"available"`
+		}{})
+		return
+	}
+
+	json.NewEncoder(w).Encode(s.performUpdateCheck())
+}
+
+type updateCheckResult struct {
+	Available bool   `json:"available"`
+	Version   string `json:"version,omitempty"`
+}
+
+func (s *Server) performUpdateCheck() updateCheckResult {
+	ret := updateCheckResult{}
 
 	matched, err := regexp.MatchString(`^v\d+\.\d+\.\d+$`, s.version)
 	if err != nil || !matched {
-		return
+		return ret
 	}
 
 	resp, err := http.Get("https://api.github.com/repos/s5i/tassist/releases/latest")
 	if err != nil {
-		return
+		return ret
 	}
 	defer resp.Body.Close()
 
@@ -515,11 +615,15 @@ func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		} `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&releaseData); err != nil {
-		return
+		return ret
 	}
 
 	if releaseData.TagName == s.version {
-		return
+		return ret
+	}
+
+	if releaseData.TagName == s.stStorage.SkipVersion() {
+		return ret
 	}
 
 	var tassistURL, updaterURL string
@@ -532,17 +636,17 @@ func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if tassistURL == "" || updaterURL == "" {
-		return
+		return ret
 	}
 
 	sourcePath := filepath.Join(s.tmpDir, fmt.Sprintf("tassist_%s.exe", releaseData.TagName))
 	if err := downloadFile(sourcePath, tassistURL); err != nil {
-		return
+		return ret
 	}
 
 	updaterPath := filepath.Join(s.tmpDir, "updater.exe")
 	if err := downloadFile(updaterPath, updaterURL); err != nil {
-		return
+		return ret
 	}
 
 	ret.Available = true
@@ -554,6 +658,8 @@ func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 	s.updateReady = true
 	s.updaterPath = updaterPath
 	s.updaterSource = sourcePath
+
+	return ret
 }
 
 func downloadFile(path string, url string) error {

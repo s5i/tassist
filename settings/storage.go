@@ -9,14 +9,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	UpdaterModeAutomatic = "Automatic"
+	UpdaterModeManual    = "Manual"
+	UpdaterModeIgnore    = "Ignore"
+)
+
 type Storage struct {
-	file     string
-	preset   string
-	settings *Settings
+	file   string
+	preset *Preset
+	stored StoredSettings
 }
 
 type StoredSettings struct {
-	Preset string `yaml:"preset"`
+	Preset      string `yaml:"preset"`
+	UpdaterMode string `yaml:"updater_mode,omitempty"`
+	SkipVersion string `yaml:"skip_version,omitempty"`
 }
 
 func New(dir string) (*Storage, error) {
@@ -27,34 +35,28 @@ func New(dir string) (*Storage, error) {
 	data, err := os.ReadFile(s.file)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			s.preset = Ancestra
-			s.settings = Presets[Ancestra]
+			s.stored = StoredSettings{Preset: Ancestra}
+			s.preset = Presets[Ancestra]
 			return s, nil
 		}
 		return nil, err
 	}
 
-	stored := &StoredSettings{}
-	if err := yaml.Unmarshal(data, stored); err != nil {
+	if err := yaml.Unmarshal(data, &s.stored); err != nil {
 		return nil, err
 	}
 
-	p, ok := Presets[stored.Preset]
+	p, ok := Presets[s.stored.Preset]
 	if !ok {
-		return nil, fmt.Errorf("unknown preset %q", stored.Preset)
+		return nil, fmt.Errorf("unknown preset %q", s.stored.Preset)
 	}
-	s.preset = stored.Preset
-	s.settings = p
+	s.preset = p
 
 	return s, nil
 }
 
-func (s *Storage) Preset() string {
+func (s *Storage) Preset() *Preset {
 	return s.preset
-}
-
-func (s *Storage) Get() *Settings {
-	return s.settings
 }
 
 func (s *Storage) SwitchPreset(id string) error {
@@ -63,9 +65,46 @@ func (s *Storage) SwitchPreset(id string) error {
 		return fmt.Errorf("unknown preset %q", id)
 	}
 
-	data, err := yaml.Marshal(&StoredSettings{
-		Preset: id,
-	})
+	s.stored.Preset = id
+	if err := s.save(); err != nil {
+		return err
+	}
+
+	s.preset = p
+
+	return nil
+}
+
+func (s *Storage) UpdaterMode() string {
+	switch s.stored.UpdaterMode {
+	case UpdaterModeAutomatic, UpdaterModeManual, UpdaterModeIgnore:
+		return s.stored.UpdaterMode
+	default:
+		return UpdaterModeManual
+	}
+}
+
+func (s *Storage) SkipVersion() string {
+	return s.stored.SkipVersion
+}
+
+func (s *Storage) SetUpdaterMode(mode string) error {
+	switch mode {
+	case UpdaterModeAutomatic, UpdaterModeManual, UpdaterModeIgnore:
+		s.stored.UpdaterMode = mode
+		return s.save()
+	default:
+		return fmt.Errorf("unknown updater mode %q", mode)
+	}
+}
+
+func (s *Storage) SetSkipVersion(v string) error {
+	s.stored.SkipVersion = v
+	return s.save()
+}
+
+func (s *Storage) save() error {
+	data, err := yaml.Marshal(&s.stored)
 	if err != nil {
 		return err
 	}
@@ -74,11 +113,5 @@ func (s *Storage) SwitchPreset(id string) error {
 		return err
 	}
 
-	if err := os.WriteFile(s.file, data, 0644); err != nil {
-		return err
-	}
-
-	s.settings = p
-
-	return nil
+	return os.WriteFile(s.file, data, 0644)
 }

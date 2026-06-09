@@ -44,7 +44,7 @@ func (y *Storage) FindRow(id string) (*row, bool, error) {
 func (y *Storage) ListRows() ([]*row, error) {
 	var rows []*row
 	for _, e := range y.entries {
-		if y.stStorage.Get().Server == e.Server {
+		if y.stStorage.Preset().Server == e.Server {
 			rows = append(rows, e)
 		}
 	}
@@ -56,7 +56,7 @@ func (y *Storage) AddRow(id, name string, a, b, c []byte) error {
 	rows := make([]*row, len(y.entries))
 	copy(rows, y.entries)
 
-	rows = append(rows, &row{id, y.stStorage.Get().Server, name, a, b, c})
+	rows = append(rows, &row{id, y.stStorage.Preset().Server, name, a, b, c})
 
 	if err := y.save(rows); err != nil {
 		return err

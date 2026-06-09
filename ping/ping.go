@@ -13,7 +13,7 @@ import (
 func New(stStorage *settings.Storage) (*Pinger, error) {
 	ret := &Pinger{}
 
-	st := stStorage.Get()
+	st := stStorage.Preset()
 	p, err := new(st.ServerAddr)
 	if err != nil {
 		return nil, err

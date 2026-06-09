@@ -1,6 +1,6 @@
 package settings
 
-type Settings struct {
+type Preset struct {
 	World             string
 	Server            string
 	ClientWindowTitle string
@@ -17,7 +17,7 @@ const (
 	Relic     = "relic"
 )
 
-var Presets = map[string]*Settings{
+var Presets = map[string]*Preset{
 	Ancestra: {
 		World:             Ancestra,
 		Server:            Tibiantis,

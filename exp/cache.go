@@ -25,9 +25,9 @@ type CacheStats struct {
 }
 
 func NewCache(tmpDir string, stStorage *settings.Storage) (*Cache, error) {
-	st := stStorage.Get()
+	preset := stStorage.Preset()
 
-	r, err := NewReader(tmpDir, st.ClientWindowTitle)
+	r, err := NewReader(tmpDir, preset.ClientWindowTitle)
 	if err != nil {
 		return nil, err
 	}
