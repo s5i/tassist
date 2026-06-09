@@ -12,7 +12,7 @@ import (
 const (
 	UpdaterModeAutomatic = "Automatic"
 	UpdaterModeManual    = "Manual"
-	UpdaterModeIgnore    = "Ignore"
+	UpdaterModeDisabled  = "Disabled"
 )
 
 type Storage struct {
@@ -77,7 +77,7 @@ func (s *Storage) SwitchPreset(id string) error {
 
 func (s *Storage) UpdaterMode() string {
 	switch s.stored.UpdaterMode {
-	case UpdaterModeAutomatic, UpdaterModeManual, UpdaterModeIgnore:
+	case UpdaterModeAutomatic, UpdaterModeManual, UpdaterModeDisabled:
 		return s.stored.UpdaterMode
 	default:
 		return UpdaterModeManual
@@ -90,7 +90,7 @@ func (s *Storage) SkipVersion() string {
 
 func (s *Storage) SetUpdaterMode(mode string) error {
 	switch mode {
-	case UpdaterModeAutomatic, UpdaterModeManual, UpdaterModeIgnore:
+	case UpdaterModeAutomatic, UpdaterModeManual, UpdaterModeDisabled:
 		s.stored.UpdaterMode = mode
 		return s.save()
 	default:

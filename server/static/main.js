@@ -37,7 +37,14 @@ const version = {
 
 const update = {
     pendingVersion: undefined,
-    run: async function () {
+    run: function () {
+        document.getElementById('update-prompt-update').addEventListener('click', update.exec);
+        document.getElementById('update-prompt-skip').addEventListener('click', update.skip);
+        document.getElementById('update-prompt-dismiss').addEventListener('click', update.hide);
+        document.getElementById('update-prompt-disable').addEventListener('click', update.disableChecks);
+        update.check();
+    },
+    check: async function () {
         const settingsResp = await fetch('/api/update/settings');
         if (!settingsResp.ok) return;
         const settings = await settingsResp.json();
@@ -48,11 +55,19 @@ const update = {
         if (!resp.ok) return;
         const d = await resp.json();
         if (d.available) {
-            update.pendingVersion = d.version;
-            toast.msg(`TAssistant ${d.version} available (see <a href="https://github.com/s5i/tassist/blob/main/CHANGELOG.md" target="_blank" class="link">changelog</a>). Click <a onclick="update.exec();" class="link">here</a> to update, or <a onclick="update.skip();" class="link">skip</a> this version.`, 60000);
+            update.show(d.version);
         }
     },
+    show: function (version) {
+        update.pendingVersion = version;
+        document.getElementById('update-prompt-title').textContent = `TAssistant ${version} available!`;
+        document.getElementById('update-prompt').classList.add('update-prompt-visible');
+    },
+    hide: function () {
+        document.getElementById('update-prompt').classList.remove('update-prompt-visible');
+    },
     exec: async function () {
+        update.hide();
         fetch('/api/update/execute').then(() => { window.close(); });
     },
     skip: async function () {
@@ -61,8 +76,22 @@ const update = {
 
         const r = await fetch('/api/update/skip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version }) });
         if (r.ok) {
-            document.getElementById('toast').classList.remove('toast-visible');
+            update.hide();
             toast.msg(`Skipped ${version}.`);
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
+    disableChecks: async function () {
+        const r = await fetch('/api/update/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: 'Disabled' }),
+        });
+        if (r.ok) {
+            update.hide();
+            updaterSettings.reload();
+            toast.msg('Update checks disabled. They can be re-enabled in the "Settings" tab.');
         } else {
             toast.msg('Error: ' + await r.text());
         }
@@ -399,7 +428,7 @@ const preset = {
 };
 
 const updaterSettings = {
-    modes: ['Automatic', 'Manual', 'Ignore'],
+    modes: ['Automatic', 'Manual', 'Disabled'],
     run: function () {
         const groupEl = document.getElementById('updater-mode-group');
         for (const mode of updaterSettings.modes) {

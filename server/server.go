@@ -578,7 +578,7 @@ func (s *Server) performUpdateExecute() bool {
 func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	if s.stStorage.UpdaterMode() == settings.UpdaterModeIgnore {
+	if s.stStorage.UpdaterMode() == settings.UpdaterModeDisabled {
 		json.NewEncoder(w).Encode(struct {
 			Available bool `json:"available"`
 		}{})

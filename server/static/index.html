@@ -166,7 +166,7 @@
                             <li><strong>Updater mode</strong>:
                                 <strong>Automatic</strong> installs available updates at startup without prompting;
                                 <strong>Manual</strong> prompts when an update is available;
-                                <strong>Ignore</strong> disables update checks.</li>
+                                <strong>Disabled</strong> disables update checks.</li>
                             <li>When an update is available, you can click <strong>skip</strong> to ignore that specific version.</li>
                         </ul>
                         <h1>Technical details</h1>
@@ -196,6 +196,20 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="update-prompt" class="update-prompt">
+        <div class="update-prompt-panel">
+            <div id="update-prompt-title" class="update-prompt-title"></div>
+            <div class="update-prompt-actions">
+                <a id="update-prompt-changelog" class="btn update-prompt-btn" href="https://github.com/s5i/tassist/blob/main/CHANGELOG.md" target="_blank" rel="noopener">See CHANGELOG</a>
+                <button id="update-prompt-update" type="button" class="btn update-prompt-btn">Update</button>
+                <button id="update-prompt-skip" type="button" class="btn update-prompt-btn">Skip version</button>
+                <button id="update-prompt-disable" type="button" class="btn update-prompt-btn">Disable update checks</button>
+                <button id="update-prompt-dismiss" type="button" class="btn update-prompt-btn">Dismiss</button>
+                
             </div>
         </div>
     </div>

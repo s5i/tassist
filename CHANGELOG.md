@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.0.26 - 2026-06-09
+
+- Updater: improved the prompt, added options for auto/manual/disabled and skipping single versions.
+- Account switcher: UX improvements (bigger "load" area, made renaming workflow more obvious).
+
 ## v0.0.25 - 2026-06-08
 
 - Hunt: fixed "Packet Loss" formatting.
