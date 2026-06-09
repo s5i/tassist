@@ -93,6 +93,10 @@ body {
     display: block;
 }
 
+#tab-accounts {
+    max-width: 500px;
+}
+
 .container-column {
     width: 100%;
 }
@@ -192,19 +196,35 @@ body {
     border-color: #e94560;
 }
 
+.acc-entry-new {
+    cursor: default;
+}
+
+.acc-entry-new:hover {
+    border-color: #0f3460;
+    background: #16213e;
+}
+
 .acc-name {
     flex: 1;
+    min-width: 0;
     font-size: .95rem;
+    color: #e0e0e0;
+    padding: 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.acc-entry-new .acc-name {
     outline: none;
     background: transparent;
-    color: #e0e0e0;
     border: none;
     border-bottom: 1px solid transparent;
-    padding: 2px 0;
     font-family: inherit;
 }
 
-.acc-name:focus {
+.acc-entry-new .acc-name:focus {
     border-bottom-color: #e94560;
 }
 

@@ -163,21 +163,21 @@ const acc = {
             entryEl.setAttribute('data-id', id);
             entryEl.setAttribute('data-name', name);
 
-            const nameEl = document.createElement('input');
+            const nameEl = document.createElement('span');
             entryEl.appendChild(nameEl);
             nameEl.classList.add('acc-name');
-            nameEl.setAttribute('name', 'name');
-            nameEl.setAttribute('readonly', true);
-            nameEl.setAttribute('value', name);
-            nameEl.setAttribute('placeholder', name);
-            nameEl.addEventListener('dblclick', acc.hdlRenameStart);
-            nameEl.addEventListener('focusout', acc.hdlRenameDone);
+            nameEl.textContent = name;
 
-            const loadEl = document.createElement('button');
-            entryEl.appendChild(loadEl);
-            loadEl.textContent = 'Load';
-            loadEl.classList.add('btn', 'acc-btn');
-            loadEl.addEventListener('click', acc.hdlLoad);
+            entryEl.addEventListener('click', (ev) => {
+                if (ev.target.closest('button')) return;
+                acc.hdlLoad(ev);
+            });
+
+            const renameEl = document.createElement('button');
+            entryEl.appendChild(renameEl);
+            renameEl.textContent = 'Rename';
+            renameEl.classList.add('btn', 'acc-btn');
+            renameEl.addEventListener('click', acc.hdlRename);
 
             const deleteEl = document.createElement('button');
             entryEl.appendChild(deleteEl);
@@ -189,7 +189,7 @@ const acc = {
         {
             const entryEl = document.createElement('div');
             accListEl.appendChild(entryEl);
-            entryEl.classList.add('acc-entry');
+            entryEl.classList.add('acc-entry', 'acc-entry-new');
 
             const nameEl = document.createElement('input');
             entryEl.appendChild(nameEl);
@@ -203,31 +203,19 @@ const acc = {
             storeEl.addEventListener('click', acc.hdlStore);
         }
     },
-    hdlRenameStart: async function (ev) {
-        const entryEl = ev.target.closest('.acc-entry');
-        const nameEl = entryEl.querySelector('.acc-name');
-
-        nameEl.removeAttribute('readonly');
-        nameEl.value = '';
-        nameEl.focus({ focusVisible: true });
-        nameEl.select();
-    },
-    hdlRenameDone: async function (ev) {
+    hdlRename: async function (ev) {
         const entryEl = ev.target.closest('.acc-entry');
         const id = entryEl.dataset.id;
         const name = entryEl.dataset.name;
-        const nameEl = entryEl.querySelector('.acc-name');
-        const newName = nameEl.value.trim();
 
-        if (newName == '' || newName == name) {
-            nameEl.value = name;
-            nameEl.setAttribute('readonly', true);
-            return;
-        }
+        const newName = prompt(`Rename "${name}":`, name);
+        if (newName === null) return;
+        const trimmed = newName.trim();
+        if (trimmed === '' || trimmed === name) return;
 
-        const r = await fetch('/api/accounts/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, name: newName }) });
+        const r = await fetch('/api/accounts/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, name: trimmed }) });
         if (r.ok) {
-            toast.msg(`Renamed "${name}" to "${newName}".`);
+            toast.msg(`Renamed "${name}" to "${trimmed}".`);
             acc.reload();
         } else {
             toast.msg('Error: ' + await r.text());
