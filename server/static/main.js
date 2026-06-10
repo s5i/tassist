@@ -98,6 +98,53 @@ const update = {
     },
 };
 
+const containerHelp = {
+    run: function () {
+        document.querySelectorAll('.container[data-help]').forEach((container) => {
+            const titleEl = container.querySelector('.container-title');
+            const titleText = titleEl.textContent.trim();
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'container-title-text';
+            titleSpan.textContent = titleText;
+            titleEl.textContent = '';
+            titleEl.appendChild(titleSpan);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'container-help-btn';
+            btn.setAttribute('aria-label', 'Help');
+            btn.textContent = '?';
+            btn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                containerHelp.show(container.dataset.help);
+            });
+            titleEl.appendChild(btn);
+        });
+
+        document.getElementById('help-prompt-close').addEventListener('click', containerHelp.hide);
+        document.getElementById('help-prompt').addEventListener('click', (ev) => {
+            if (ev.target.id === 'help-prompt') {
+                containerHelp.hide();
+            }
+        });
+    },
+    show: function (helpId) {
+        const section = document.getElementById('help-' + helpId);
+        const container = document.querySelector(`.container[data-help="${helpId}"]`);
+        if (!section || !container) return;
+
+        const title = container.querySelector('.container-title-text').textContent;
+        let html = section.innerHTML;
+
+        document.getElementById('help-prompt-content').innerHTML = html;
+        document.getElementById('help-prompt').classList.add('help-prompt-visible');
+    },
+    hide: function () {
+        document.getElementById('help-prompt').classList.remove('help-prompt-visible');
+    },
+};
+
 const tabs = {
     run: function () {
         document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -796,6 +843,7 @@ const timers = {
 };
 
 tabs.run();
+containerHelp.run();
 preset.run();
 updaterSettings.run();
 keepalive.run();

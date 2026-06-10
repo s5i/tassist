@@ -14,7 +14,7 @@
             <button class="tab-btn" data-tab="accounts">Accounts</button>
             <button class="tab-btn" data-tab="timers">Timers</button>
             <button class="tab-btn" data-tab="settings">Settings</button>
-            <button class="tab-btn" data-tab="help">Help</button>
+            <button class="tab-btn" data-tab="help">Issues?</button>
         </div>
         <div id="preset-indicator" class="preset-indicator"></div>
     </div>
@@ -22,7 +22,7 @@
     <div class="tab-content-area">
         <div id="tab-hunt" class="tab-panel tab-panel-active">
             <div class="container-column">
-                <div id="world-container" class="container world-container">
+                <div id="world-container" class="container world-container" data-help="world">
                     <div class="container-title">World</div>
                     <div class="world-val-grid">
                         <div class="world-cell">
@@ -39,7 +39,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="exp-container" class="container exp-container">
+                <div id="exp-container" class="container exp-container" data-help="exp">
                     <div class="container-title">Experience Tracker</div>
                     <div class="exp-val-grid">
                         <div class="exp-cell">
@@ -78,7 +78,7 @@
 
         <div id="tab-accounts" class="tab-panel">
             <div class="container-column">
-                <div id="acc-container" class="container acc-container">
+                <div id="acc-container" class="container acc-container" data-help="accounts">
                     <div class="container-title">Account Switcher</div>
                     <div id="acc-list" class="acc-list"></div>
                 </div>
@@ -87,7 +87,7 @@
 
         <div id="tab-timers" class="tab-panel">
             <div class="container-column">
-                <div id="timer-container" class="container timer-container">
+                <div id="timer-container" class="container timer-container" data-help="timers">
                     <div class="container-title">Timers</div>
                     <div id="timer-list" class="timer-list"></div>
                 </div>
@@ -97,11 +97,11 @@
         <div id="tab-settings" class="tab-panel">
             <div class="container-column settings-column">
                 <div class="settings-row">
-                    <div id="preset-container" class="container preset-container">
+                    <div id="preset-container" class="container preset-container" data-help="preset">
                         <div class="container-title">World Presets</div>
                         <div id="preset-list" class="preset-list"></div>
                     </div>
-                    <div id="updater-container" class="container updater-container">
+                    <div id="updater-container" class="container updater-container" data-help="updater">
                         <div class="container-title">Updater</div>
                         <div id="updater-mode-group" class="preset-list"></div>
                     </div>
@@ -113,78 +113,6 @@
             <div class="container-column">
                 <div class="container help-container">
                     <div class="help-content">
-                        <h1>Hunt</h1>
-                        <h2>World</h2>
-                        <ul>
-                            <li><strong>Online</strong> displays the number of players online on the chosen world.</li>
-                            <li><strong>Ping</strong> displays your round-trip-time to the chosen world.</li>
-                            <li><strong>Packet loss</strong> displays the percentage of ping packets lost within the
-                                last 20 seconds.</li>
-                        </ul>
-                        <h2>Experience Tracker</h2>
-                        <ul>
-                            <li>You need to have the Skills tab open with the "Experience" line being visible.</li>
-                            <li>If exp detection is not working despite an active session, try re-focusing the
-                                game window (e.g. by alt-tabbing into another window and back).</li>
-                            <li><strong>Level</strong> and <strong>Experience</strong> display the current level and
-                                experience, respectively.</li>
-                            <li><strong>Remaining</strong> displays the experience needed to reach the next level.</li>
-                            <li><strong>Session exp/h</strong>, <strong>Session exp</strong>, <strong>Session
-                                    duration</strong> display the experience per hour, gained experience, and time
-                                elapsed since the session started, respectively.</li>
-                            <li><strong>Start</strong>/<strong>Stop</strong>: controls whether the session is active.
-                            </li>
-                            <li><strong>Pause</strong>/<strong>Unpause</strong> controls whether the session is paused;
-                                while paused, neither experience changes nor time elapsed is counted towards exp/h.</li>
-                            <li><strong>Reset</strong> resets the session.</li>
-                        </ul>
-                        <h1>Accounts</h1>
-                        <ul>
-                            <li><strong>Store</strong> stores the account that's currently saved by the game client.</li>
-                            <li>Clicking an entry restores a previously stored account.</li>
-                            <li><strong>Rename</strong> allows you to rename a stored account.</li>
-                            <li><strong>Rename</strong> removes a stored account.</li>
-                            <li>The game client refreshes the stored account on each <u>character</u>
-                                login; keep this in mind to avoid confusion around which account is stored/loaded.
-                            </li>
-                        </ul>
-                        <h1>Timers</h1>
-                        <ul>
-                            <li><strong>Loop</strong> controls whether the timer should automatically start ticking
-                                again after it fires.</li>
-                            <li><strong>Sound</strong> controls whether the timer should beep when firing.</li>
-                            <li><strong>AutoAck</strong> automatically dismisses the timer when it fires; if sound is enabled, the beep will play once.</li>
-                            <li>You can dismiss a firing timer by clicking on it.</li>
-                            <li>The timers are preserved even if the application is not running.</li>
-                            <li>If there are timers firing at startup time, the sound will not play.</li>
-                            <li>You can replace the beep sound by placing a <code>beep.mp3</code> file in the <code>%AppData%\TAssistant</code> directory and restarting TAssistant.</li>
-                        </ul>
-                        <h1>Settings</h1>
-                        <ul>
-                            <li><strong>World presets</strong>: clicking on a world name will reload TAssistant with settings tuned to a given world
-                                (players online, server IPs, client window name, etc).</li>
-                            <li><strong>Updater mode</strong>:
-                                <strong>Automatic</strong> installs available updates at startup without prompting;
-                                <strong>Manual</strong> prompts when an update is available;
-                                <strong>Disabled</strong> disables update checks.</li>
-                            <li>When an update is available, you can click <strong>skip</strong> to ignore that specific version.</li>
-                        </ul>
-                        <h1>Technical details</h1>
-                        <ul>
-                            <li>The application quits automatically ~15-20 seconds after closing the browser tab.</li>
-                            <li>Online numbers are pulled from <code>tibiantis.info</code> and
-                                <code>opentibia.info</code>.
-                            </li>
-                            <li>Experience tracking: TAssistant takes a screenshot of a window matching the OT-specific
-                                window title every 2 seconds, searches for "Experience" on the right panel, and then
-                                runs OCR on the line.</li>
-                            <li>Account switching: TAssistant stores the Base64-encoded registry entries under
-                                <code>%AppData%\TAssistant\accounts.yaml</code>.
-                            </li>
-                            <li>Packet loss measure: If a server uses built-in proxies, we display the average across
-                                all known proxies.</li>
-                        </ul>
-                        <h1>Issues?</h1>
                         <ul>
                             <li>Report any issues to shyymzinhu @ Discord; attach the following:
                                 <ul>
@@ -200,16 +128,128 @@
         </div>
     </div>
 
+    <div id="help-sections" hidden>
+        <section id="help-world" class="help-section">
+            <ul>
+                <li>
+                    <strong>Online</strong> displays the number of players online on the chosen world.
+                    <ul>
+                        <li>Numbers are pulled from <code>tibiantis.info</code> or <code>opentibia.info</code>.</li>
+                    </ul>
+                </li>
+                <li><strong>Ping</strong> displays your round-trip-time to the chosen world.</li>
+                <li>
+                    <strong>Packet loss</strong> displays the percentage of ping packets lost within the
+                    last 20 seconds.
+                    <ul>
+                        <li>For servers using built-in proxies, we display the average across all known proxies.</li>
+                    </ul>
+                </li>
+
+            </ul>
+        </section>
+        <section id="help-exp" class="help-section">
+            <h2>Sessions</h2>
+            <ul>
+                <li><strong></strong>Start</strong> starts a "session" that tracks the experience gained and time
+                    elapsed.</li>
+                <li><strong>Stop</strong> and <strong>Reset</strong> clear the session stats.</li>
+                <li><strong>Pause</strong> temporarily freezes the session; experience changes and time elapsed while
+                    paused are not counted towards session stats.</li>
+            </ul>
+            <h2>Exp detection</h2>
+            <ul>
+                <li>TAssistant only attempts to detect exp while the session is running.</li>
+                <li>For exp detection to work, the <strong>Skills</strong> tab needs to be open with the
+                    <strong>Experience</strong> line being fully visible.
+                </li>
+                <li>If exp detection is not working despite an active session, try re-focusing the game window (eg. by
+                    alt-tabbing into another window and back).</li>
+                <li>How do we detect experience?
+                    <ul>
+                        <li>We take a screenshot of a window matching the OT-specific window title.</li>
+                        <li>We find the <strong>Experience</strong> label in the rightmost 200 pixels of the screenshot.
+                        </li>
+                        <li>We run OCR on the 80x10 box right of the <strong>Experience</strong> label.</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+        <section id="help-accounts" class="help-section">
+            <ul>
+                <li><strong>Store</strong> stores the account that's currently saved by the game client.</li>
+                <li>Clicking an entry restores a previously stored account.</li>
+                <li><strong>Rename</strong> allows you to rename a stored account.</li>
+                <li><strong>Delete</strong> removes a stored account.</li>
+                <li>The game client refreshes the stored account on each <u>character</u>
+                    login; keep this in mind to avoid confusion around which account is stored/loaded.
+                </li>
+                <li>How does this work? <ul>
+                        <li>The game client keeps the (encrypted) credentials in Windows Registry.</li>
+                        <li>When storing an account, we copy the relevant registry keys into
+                            <code>%AppData%\TAssistant\accounts.yaml</code>.</li>
+                        <li>When loading an account, we restore the relevant registry keys.</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+        <section id="help-timers" class="help-section">
+            <ul>
+                <li><strong>Loop</strong> controls whether the timer should automatically start ticking
+                    again after it fires.</li>
+                <li><strong>Sound</strong> controls whether the timer should beep when firing.</li>
+                <li><strong>AutoAck</strong> automatically dismisses the timer when it fires; if sound is enabled, the
+                    beep will play once.</li>
+                <li>You can dismiss a firing timer by clicking on it.</li>
+                <li>The timers are preserved even if the application is not running.</li>
+                <li>If there are timers firing at startup time, the sound will not play.</li>
+                <li>You can replace the beep sound by placing a <code>beep.mp3</code> file in the
+                    <code>%AppData%\TAssistant</code> directory and restarting TAssistant.
+                </li>
+            </ul>
+        </section>
+        <section id="help-preset" class="help-section">
+            <ul>
+                <li>Clicking on a world name reloads TAssistant with settings tuned to a given world
+                    (players online, server IPs, client window name, etc).</li>
+            </ul>
+        </section>
+        <section id="help-updater" class="help-section">
+            <ul>
+                <li><strong>Automatic</strong>: updates are installed automatically at startup without prompting.</li>
+                <li><strong>Manual</strong>: an update prompt is shown at startup when an update is available.
+                    <ul>
+                        <li>The prompt also allows skipping the specific version (ie. "don't ask again for this
+                            version").</li>
+                    </ul>
+                </li>
+                <li><strong>Disabled</strong>: update checks are disabled.</li>
+            </ul>
+        </section>
+    </div>
+
+    <div id="help-prompt" class="help-prompt">
+        <div class="help-prompt-panel">
+            <div id="help-prompt-content" class="help-content"></div>
+            <button id="help-prompt-close" type="button" class="btn help-prompt-close">Close</button>
+        </div>
+    </div>
+
     <div id="update-prompt" class="update-prompt">
         <div class="update-prompt-panel">
             <div id="update-prompt-title" class="update-prompt-title"></div>
             <div class="update-prompt-actions">
-                <a id="update-prompt-changelog" class="btn update-prompt-btn" href="https://github.com/s5i/tassist/blob/main/CHANGELOG.md" target="_blank" rel="noopener">See CHANGELOG</a>
+                <a id="update-prompt-changelog" class="btn update-prompt-btn"
+                    href="https://github.com/s5i/tassist/blob/main/CHANGELOG.md" target="_blank" rel="noopener">See
+                    CHANGELOG</a>
                 <button id="update-prompt-update" type="button" class="btn update-prompt-btn">Update</button>
-                <button id="update-prompt-skip" type="button" class="btn update-prompt-btn">Skip version</button>
-                <button id="update-prompt-disable" type="button" class="btn update-prompt-btn">Disable update checks</button>
-                <button id="update-prompt-dismiss" type="button" class="btn update-prompt-btn">Dismiss</button>
-                
+                <button id="update-prompt-skip" type="button" class="btn update-prompt-btn">Skip, don't ask again (this
+                    version)</button>
+                <button id="update-prompt-disable" type="button" class="btn update-prompt-btn">Skip, don't ask again
+                    (all future updates)</button>
+                <button id="update-prompt-dismiss" type="button" class="btn update-prompt-btn">Skip, ask me again
+                    later</button>
+
             </div>
         </div>
     </div>

@@ -128,12 +128,42 @@ body {
 }
 
 .container-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     font-size: 0.9rem;
     color: #ffffff;
     margin-bottom: 10px;
-    text-align: center;
     text-transform: uppercase;
     letter-spacing: .5px;
+}
+
+.container-help-btn {
+    flex-shrink: 0;
+    width: 1.15em;
+    height: 1.15em;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: transparent;
+    color: #888;
+    font: inherit;
+    font-size: 0.85em;
+    font-weight: inherit;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.75;
+    transition: color .15s, border-color .15s, opacity .15s, background .15s;
+}
+
+.container-help-btn:hover {
+    color: #e94560;
+    border-color: #e94560;
+    opacity: 1;
+    background: rgba(233, 69, 96, 0.08);
 }
 
 .toast {
@@ -204,6 +234,57 @@ body {
     font-size: .85rem;
     text-align: center;
     text-decoration: none;
+}
+
+.help-prompt {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(10, 10, 20, 0.72);
+    z-index: 30;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s, visibility .3s;
+}
+
+.help-prompt-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.help-prompt-panel {
+    width: 100%;
+    max-width: 800px;
+    max-height: min(80vh, 560px);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px;
+    background: #121a31;
+    border: 1px solid #16213e;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+#help-prompt-content {
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.help-prompt-close {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: .85rem;
+}
+
+.help-prompt-heading {
+    font-size: .8rem;
+    color: #aaa;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
 }
 
 .link {
