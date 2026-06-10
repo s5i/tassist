@@ -34,7 +34,7 @@ func NewCache(tmpDir string, stStorage *settings.Storage) (*Cache, error) {
 
 	return &Cache{
 		reader:       r,
-		samplePeriod: 2 * time.Second,
+		samplePeriod: time.Second,
 	}, nil
 }
 
@@ -81,6 +81,8 @@ func (c *Cache) Unpause() {
 		return
 	}
 
+	c.lastSample = nil
+	c.startSample = nil
 	c.paused = false
 }
 
@@ -176,6 +178,12 @@ func (c *Cache) maybeGrabSample() {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	// We might've stopped or paused during the read. Check again.
+	shouldSample = c.running && !c.paused
+	if !shouldSample {
+		return
+	}
 
 	c.lastSample = &sample{exp, time.Now()}
 	if c.startSample == nil {

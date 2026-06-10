@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.27 - 2026-06-10
+
+- Hunt: fixed an issue where pause-time stats would sometimes get incorrectly added to the session stats.
+
 ## v0.0.26 - 2026-06-09
 
 - Updater: improved the prompt, added options for auto/manual/disabled and skipping single versions.
