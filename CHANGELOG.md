@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.28 - 2026-06-23
+
+- New: added a loot calculator.
+
 ## v0.0.27 - 2026-06-10
 
 - Hunt: fixed an issue where pause-time stats would sometimes get incorrectly added to the session stats.

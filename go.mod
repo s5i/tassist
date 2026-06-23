@@ -8,6 +8,7 @@ require (
 	github.com/kbinani/screenshot v0.0.0-20250624051815-089614a94018
 	github.com/prometheus-community/pro-bing v0.8.0
 	github.com/s5i/goutil/version v0.0.0
+	github.com/s5i/tloot v0.3.5
 	github.com/winlabs/gowin32 v0.0.0-20260308155911-6a6dc53430f0
 	golang.org/x/net v0.53.0
 	golang.org/x/sync v0.20.0
@@ -19,5 +20,7 @@ require (
 	github.com/gen2brain/shm v0.1.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

@@ -10,10 +10,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/s5i/goutil/version"
 	"github.com/s5i/tassist/acc"
 	"github.com/s5i/tassist/exp"
+	"github.com/s5i/tassist/loot"
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
 	"github.com/s5i/tassist/server"
@@ -114,7 +116,13 @@ func mainErr() (retErr error) {
 		return err
 	}
 
-	srv, err := server.New(*dir, *tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage)
+	lootStorage, err := loot.NewStorage(*dir)
+	if err != nil {
+		log.Printf("loot.NewStorage() failed: %v", err)
+		return err
+	}
+
+	srv, err := server.New(*dir, *tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage, loot.NewService(), lootStorage)
 	if err != nil {
 		log.Printf("server.New() failed: %v", err)
 		return err
@@ -151,5 +159,6 @@ func mainErr() (retErr error) {
 func logPanic() {
 	if r := recover(); r != nil {
 		log.Printf("Crash detected: %v", r)
+		log.Printf("Stack trace:\n%s", string(debug.Stack()))
 	}
 }

@@ -432,6 +432,24 @@ const world = {
     },
 };
 
+const settingsNav = {
+    run: function () {
+        document.querySelectorAll('.settings-nav-item').forEach((btn) => {
+            btn.addEventListener('click', settingsNav.hdlSwitch);
+        });
+    },
+    hdlSwitch: function (ev) {
+        const btn = ev.target.closest('.settings-nav-item');
+        const panelId = btn.dataset.settings;
+
+        document.querySelectorAll('.settings-nav-item').forEach((b) => b.classList.remove('settings-nav-active'));
+        btn.classList.add('settings-nav-active');
+
+        document.querySelectorAll('.settings-panel').forEach((p) => p.classList.remove('settings-panel-active'));
+        document.getElementById('settings-panel-' + panelId).classList.add('settings-panel-active');
+    },
+};
+
 const preset = {
     run: async function () {
         const resp = await fetch('/api/preset/list');
@@ -842,8 +860,397 @@ const timers = {
     },
 };
 
+const loot = {
+    items: {},
+    prices: {},
+    pasteEnabled: true,
+    screenshots: [],
+    currentIndex: -1,
+
+    run: async function () {
+        document.getElementById('loot-reset-prices').addEventListener('click', loot.resetPrices);
+        document.getElementById('loot-prev-btn').addEventListener('click', () => loot.navigate(-1));
+        document.getElementById('loot-next-btn').addEventListener('click', () => loot.navigate(1));
+        document.getElementById('loot-upload-pick-btn').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            document.getElementById('loot-upload-file-input').click();
+        });
+        document.getElementById('loot-upload-area').addEventListener('click', () => {
+            document.getElementById('loot-upload-file-input').click();
+        });
+        document.getElementById('loot-upload-file-input').addEventListener('change', loot.hdlFileInput);
+        loot.bindUploadDragDrop();
+        window.addEventListener('paste', loot.hdlPaste);
+        window.addEventListener('keydown', loot.hdlKeydown);
+        await loot.reload();
+    },
+    reload: async function () {
+        const [itemsResp, pricesResp] = await Promise.all([
+            fetch('/api/loot/items'),
+            fetch('/api/loot/prices'),
+        ]);
+        if (!itemsResp.ok || !pricesResp.ok) {
+            toast.msg('Failed to load loot data.');
+            return;
+        }
+        const itemsList = await itemsResp.json();
+        loot.items = Object.fromEntries(itemsList.map((item) => [String(item.id), item]));
+        loot.prices = await pricesResp.json();
+        loot.loadItemSettings();
+        loot.refreshView();
+    },
+    getItemPrice: function (id) {
+        const sid = String(id);
+        if (sid in loot.prices) {
+            return loot.prices[sid];
+        }
+        return loot.items[sid]?.value ?? 0;
+    },
+    getItemName: function (id) {
+        return loot.items[String(id)]?.name ?? `Item ${id}`;
+    },
+    fmtGp: function (x) {
+        return Number(x).toLocaleString();
+    },
+    calcCountsValue: function (counts) {
+        let total = 0;
+        Object.entries(counts).forEach(([itemId, count]) => {
+            total += count * loot.getItemPrice(itemId);
+        });
+        return total;
+    },
+    calcItemCount: function (counts) {
+        let total = 0;
+        Object.values(counts).forEach((count) => {
+            total += count;
+        });
+        return total;
+    },
+    addScreenshot: function (src, counts) {
+        loot.screenshots.push({ src, counts });
+        loot.currentIndex = loot.screenshots.length - 1;
+        loot.refreshView();
+    },
+    navigate: function (delta) {
+        if (loot.screenshots.length === 0) {
+            return;
+        }
+        const next = loot.currentIndex + delta;
+        if (next < 0 || next >= loot.screenshots.length) {
+            return;
+        }
+        loot.currentIndex = next;
+        loot.refreshDetails();
+    },
+    refreshView: function () {
+        loot.refreshDetails();
+        loot.refreshTotal();
+    },
+    refreshDetails: function () {
+        const emptyEl = document.getElementById('loot-details-empty');
+        const contentEl = document.getElementById('loot-details-content');
+        const imageEl = document.getElementById('loot-current-image');
+        const foundEl = document.getElementById('loot-current-found');
+        const labelEl = document.getElementById('loot-screenshot-label');
+        const prevBtn = document.getElementById('loot-prev-btn');
+        const nextBtn = document.getElementById('loot-next-btn');
+
+        const hasScreenshots = loot.screenshots.length > 0;
+        if (hasScreenshots && loot.currentIndex < 0) {
+            loot.currentIndex = loot.screenshots.length - 1;
+        }
+        emptyEl.toggleAttribute('hidden', hasScreenshots);
+        contentEl.toggleAttribute('hidden', !hasScreenshots);
+        prevBtn.disabled = !hasScreenshots || loot.currentIndex <= 0;
+        nextBtn.disabled = !hasScreenshots || loot.currentIndex >= loot.screenshots.length - 1;
+
+        if (!hasScreenshots) {
+            labelEl.textContent = '—';
+            return;
+        }
+
+        labelEl.textContent = `${loot.currentIndex + 1} / ${loot.screenshots.length}`;
+
+        imageEl.innerHTML = '';
+        foundEl.innerHTML = '';
+
+        const shot = loot.screenshots[loot.currentIndex];
+        const img = document.createElement('img');
+        img.src = shot.src;
+        imageEl.appendChild(img);
+
+        let scrValue = 0;
+        Object.entries(shot.counts).forEach(([itemId, count]) => {
+            const name = loot.getItemName(itemId);
+            const value = loot.getItemPrice(itemId);
+            const ctVal = count * value;
+            scrValue += ctVal;
+
+            const itemLine = document.createElement('div');
+            itemLine.className = 'loot-found-line';
+            itemLine.textContent = `${name}: ${count} x ${loot.fmtGp(value)} gp = ${loot.fmtGp(ctVal)} gp`;
+            foundEl.appendChild(itemLine);
+        });
+
+        const scrResult = document.createElement('div');
+        scrResult.className = 'loot-found-line loot-found-bold';
+        scrResult.textContent = `Value: ${loot.fmtGp(scrValue)} gp`;
+        foundEl.appendChild(scrResult);
+
+        const countLine = document.createElement('div');
+        countLine.className = 'loot-found-line loot-found-bold';
+        countLine.textContent = `Number of items detected: ${loot.calcItemCount(shot.counts)}`;
+        foundEl.appendChild(countLine);
+    },
+    refreshTotal: function () {
+        const emptyEl = document.getElementById('loot-total-empty');
+        const foundEl = document.getElementById('loot-total-found');
+        foundEl.innerHTML = '';
+
+        if (loot.screenshots.length === 0) {
+            emptyEl.toggleAttribute('hidden', false);
+            foundEl.toggleAttribute('hidden', true);
+            return;
+        }
+
+        emptyEl.toggleAttribute('hidden', true);
+        foundEl.toggleAttribute('hidden', false);
+
+        let totalValue = 0;
+        loot.screenshots.forEach((shot, idx) => {
+            const scrValue = loot.calcCountsValue(shot.counts);
+            totalValue += scrValue;
+
+            const line = document.createElement('div');
+            line.className = 'loot-found-line';
+            line.textContent = `Screenshot #${idx + 1}: ${loot.fmtGp(scrValue)} gp`;
+            foundEl.appendChild(line);
+        });
+
+        const totalResult = document.createElement('div');
+        totalResult.className = 'loot-found-line loot-found-bold';
+        totalResult.textContent = `Total value: ${loot.fmtGp(totalValue)} gp`;
+        foundEl.appendChild(totalResult);
+    },
+    loadItemSettings: function () {
+        const categories = Object.fromEntries(
+            Object.values(loot.items)
+                .map((item) => item.category)
+                .filter((v, idx, arr) => arr.indexOf(v) === idx)
+                .sort()
+                .map((category) => [
+                    category,
+                    Object.values(loot.items)
+                        .filter((v) => v.category === category)
+                        .sort((a, b) => a.name === b.name ? 0 : a.name < b.name ? -1 : 1)
+                        .map((item) => String(item.id)),
+                ])
+        );
+
+        const root = document.getElementById('loot-item-settings');
+        root.innerHTML = '';
+
+        const navDiv = document.createElement('div');
+        navDiv.className = 'loot-category-nav';
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'loot-category-content';
+        root.appendChild(navDiv);
+        root.appendChild(contentDiv);
+
+        const selectCategory = (navItem, cDiv) => {
+            navDiv.querySelectorAll('.loot-category-nav-item').forEach((el) => el.classList.remove('active'));
+            contentDiv.querySelectorAll('.loot-item-category').forEach((el) => el.classList.remove('active'));
+            navItem.classList.add('active');
+            cDiv.classList.add('active');
+        };
+
+        let firstNavItem = null;
+        let firstCDiv = null;
+
+        Object.entries(categories).forEach(([category, ids]) => {
+            const cDiv = document.createElement('div');
+            cDiv.className = 'loot-item-category';
+            const navItem = document.createElement('div');
+            navItem.className = 'loot-category-nav-item';
+            navItem.textContent = category;
+            navItem.addEventListener('click', () => selectCategory(navItem, cDiv));
+            navDiv.appendChild(navItem);
+            contentDiv.appendChild(cDiv);
+
+            if (!firstNavItem) {
+                firstNavItem = navItem;
+                firstCDiv = cDiv;
+            }
+
+            ids.forEach((id) => {
+                const item = loot.items[id];
+                const row = document.createElement('div');
+                row.className = 'loot-item-row';
+
+                const name = document.createElement('span');
+                name.className = 'loot-item-name';
+                name.textContent = item.name;
+                row.appendChild(name);
+
+                const input = document.createElement('input');
+                input.className = 'loot-item-value';
+                input.id = `loot_${id}_value`;
+                input.type = 'number';
+                input.min = '0';
+                input.value = loot.getItemPrice(id);
+                if (item.market) {
+                    input.classList.add('market-value');
+                }
+                if (String(id) in loot.prices) {
+                    input.classList.add('modified-value');
+                }
+                input.addEventListener('change', () => loot.hdlPriceChange(id, input));
+                row.appendChild(input);
+
+                cDiv.appendChild(row);
+            });
+        });
+
+        if (firstNavItem) {
+            selectCategory(firstNavItem, firstCDiv);
+        }
+    },
+    hdlPriceChange: async function (id, input) {
+        const sid = String(id);
+        const value = parseInt(input.value, 10) || 0;
+        const defaultValue = loot.items[sid]?.value ?? 0;
+        const toSave = (value > 0 && value !== defaultValue) ? value : 0;
+
+        const r = await fetch('/api/loot/prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prices: { [Number(sid)]: toSave } }),
+        });
+        if (!r.ok) {
+            toast.msg('Error saving price: ' + await r.text());
+            return;
+        }
+        loot.prices = await r.json();
+
+        if (sid in loot.prices) {
+            input.classList.add('modified-value');
+        } else {
+            input.classList.remove('modified-value');
+        }
+        loot.refreshView();
+    },
+    resetPrices: async function () {
+        const r = await fetch('/api/loot/prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reset: true }),
+        });
+        if (!r.ok) {
+            toast.msg('Error: ' + await r.text());
+            return;
+        }
+        loot.prices = await r.json();
+        loot.loadItemSettings();
+        loot.refreshView();
+        toast.msg('Prices reset to defaults.');
+    },
+    bindUploadDragDrop: function () {
+        const area = document.getElementById('loot-upload-area');
+        area.addEventListener('dragover', (ev) => {
+            ev.preventDefault();
+            area.classList.add('drag-over');
+        });
+        area.addEventListener('dragleave', () => {
+            area.classList.remove('drag-over');
+        });
+        area.addEventListener('drop', (ev) => {
+            ev.preventDefault();
+            area.classList.remove('drag-over');
+            if (ev.dataTransfer.files.length > 0) {
+                loot.processFile(ev.dataTransfer.files[0]);
+            }
+        });
+    },
+    hdlFileInput: function (ev) {
+        const f = ev.target.files[0];
+        ev.target.value = '';
+        if (f) {
+            loot.processFile(f);
+        }
+    },
+    setUploading: function (uploading) {
+        document.getElementById('loot-upload-area').classList.toggle('uploading', uploading);
+        loot.pasteEnabled = !uploading;
+    },
+    processFile: async function (file) {
+        if (!loot.pasteEnabled) {
+            return;
+        }
+        if (file.type !== 'image/png') {
+            toast.msg('Only PNG screenshots are supported.');
+            return;
+        }
+
+        loot.setUploading(true);
+        const start = performance.now();
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const r = await fetch('/api/loot/process', { method: 'POST', body: formData });
+            if (!r.ok) {
+                toast.msg('Error: ' + await r.text());
+                return;
+            }
+            const counts = await r.json();
+            loot.addScreenshot(URL.createObjectURL(file), counts);
+            toast.msg(`Processing took ${((performance.now() - start) / 1000).toPrecision(2)}s.`);
+        } catch (err) {
+            toast.msg('Error: ' + err);
+        } finally {
+            loot.setUploading(false);
+        }
+    },
+    hdlKeydown: function (event) {
+        const lootTab = document.getElementById('tab-loot');
+        if (!lootTab.classList.contains('tab-panel-active')) {
+            return;
+        }
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            loot.navigate(-1);
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            loot.navigate(1);
+        }
+    },
+    hdlPaste: async function (event) {
+        const lootTab = document.getElementById('tab-loot');
+        if (!lootTab.classList.contains('tab-panel-active')) {
+            return;
+        }
+
+        event.preventDefault();
+        if (!loot.pasteEnabled) {
+            return;
+        }
+
+        if (event.clipboardData.files.length === 0) {
+            toast.msg('Non-screenshot paste detected.');
+            return;
+        }
+
+        loot.processFile(event.clipboardData.files[0]);
+    },
+};
+
 tabs.run();
 containerHelp.run();
+settingsNav.run();
 preset.run();
 updaterSettings.run();
 keepalive.run();
@@ -853,3 +1260,4 @@ exp.run();
 acc.run();
 world.run();
 timers.run();
+loot.run();

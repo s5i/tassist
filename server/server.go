@@ -25,6 +25,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/s5i/tassist/acc"
 	"github.com/s5i/tassist/exp"
+	"github.com/s5i/tassist/loot"
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
 	"github.com/s5i/tassist/settings"
@@ -37,7 +38,7 @@ import (
 
 var ErrRestart = fmt.Errorf("server is restarting...")
 
-func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage) (*Server, error) {
+func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage, lootSvc *loot.Service, lootStorage *loot.Storage) (*Server, error) {
 	s := &Server{
 		dataDir:              dataDir,
 		tmpDir:               tmpDir,
@@ -48,6 +49,8 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 		version:              version,
 		stStorage:            stStorage,
 		tmStorage:            tmStorage,
+		loot:                 lootSvc,
+		lootStorage:          lootStorage,
 		keepalive:            time.Now(),
 		keepaliveCheckPeriod: 2 * time.Second,
 		keepaliveFails:       3,
@@ -87,6 +90,9 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 	mux.HandleFunc("/api/timers/autoack", s.handleTimerAutoAck)
 	mux.HandleFunc("/api/timers/remove", s.handleTimerRemove)
 	mux.HandleFunc("/api/timers/list", s.handleTimerList)
+	mux.HandleFunc("/api/loot/items", s.handleLootItems)
+	mux.HandleFunc("/api/loot/prices", s.handleLootPrices)
+	mux.HandleFunc("/api/loot/process", s.handleLootProcess)
 	s.mux = mux
 
 	return s, nil
@@ -169,8 +175,10 @@ type Server struct {
 	exp       *exp.Cache
 	pinger    *ping.Pinger
 	online    *online.Online
-	stStorage *settings.Storage
-	tmStorage *timer.Storage
+	stStorage   *settings.Storage
+	tmStorage   *timer.Storage
+	loot        *loot.Service
+	lootStorage *loot.Storage
 
 	srv *http.Server
 	mux *http.ServeMux
@@ -1062,6 +1070,96 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) handleLootItems(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "GET only", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(s.loot.Items()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handleLootPrices(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(s.lootStorage.Prices()); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	case http.MethodPost:
+		var req struct {
+			Prices map[int]int `json:"prices"`
+			Reset  bool        `json:"reset"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		var err error
+		if req.Reset {
+			err = s.lootStorage.Reset()
+		} else {
+			err = s.lootStorage.SetPrices(req.Prices)
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(s.lootStorage.Prices()); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "GET or POST only", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Server) handleLootProcess(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+
+	const maxUpload = 10 << 20
+	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
+	if err := r.ParseMultipartForm(maxUpload); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "missing image field", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	counts, err := s.loot.ProcessPNG(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ret := make(map[string]int, len(counts))
+	for id, count := range counts {
+		ret[fmt.Sprintf("%d", id)] = count
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(ret); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 //go:embed static/*
 var staticData embed.FS
 
@@ -1078,6 +1176,8 @@ func contentType(fName string) string {
 		return "text/css; charset=utf-8"
 	case "ico":
 		return "image/x-icon"
+	case "png":
+		return "image/png"
 	case "mp3":
 		return "audio/mp3"
 	default:

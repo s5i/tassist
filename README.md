@@ -16,9 +16,7 @@ Alternatively, you're free to audit and compile the code yourself:
 
 ## Screenshots
 
-![Tab list](https://raw.github.com/s5i/tassist/main/screenshots/tabs.png)
 ![Hunt tab](https://raw.github.com/s5i/tassist/main/screenshots/hunt.png)
 ![Accounts tab](https://raw.github.com/s5i/tassist/main/screenshots/accounts.png)
 ![Timers tab](https://raw.github.com/s5i/tassist/main/screenshots/timers.gif)
-![Settings tab](https://raw.github.com/s5i/tassist/main/screenshots/settings.png)
-![Help tab](https://raw.github.com/s5i/tassist/main/screenshots/help.png)
+![Loot tab](https://raw.github.com/s5i/tassist/main/screenshots/loot.png)

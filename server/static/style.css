@@ -98,20 +98,67 @@ body {
 }
 
 #tab-settings {
-    max-width: 480px;
+    max-width: 1100px;
 }
 
-.settings-row {
+.settings-layout {
     display: flex;
-    gap: 10px;
-    align-items: stretch;
+    gap: 12px;
+    align-items: flex-start;
+    width: 100%;
 }
 
-.settings-row .container {
+.settings-nav {
+    flex: 0 0 148px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    background: #121a31;
+    border: 1px solid #16213e;
+    border-radius: 8px;
+}
+
+.settings-nav-item {
+    background: none;
+    border: none;
+    color: #888;
+    font-family: inherit;
+    font-size: .85rem;
+    padding: 10px 12px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+    transition: color .15s, background .15s, border-color .15s;
+}
+
+.settings-nav-item:hover {
+    color: #e0e0e0;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-nav-item.settings-nav-active {
+    color: #e94560;
+    border-left-color: #e94560;
+    background: rgba(233, 69, 96, 0.08);
+}
+
+.settings-panels {
     flex: 1;
     min-width: 0;
+}
+
+.settings-panel {
+    display: none;
+}
+
+.settings-panel-active {
+    display: block;
+}
+
+.settings-panel .container {
     margin-bottom: 0;
-    padding: 10px 12px;
 }
 
 .container-column {
@@ -717,4 +764,276 @@ body {
     padding: 1px 5px;
     border-radius: 3px;
     font-size: .8rem;
+}
+
+.help-content .help-loot-example {
+    display: block;
+    max-width: 100%;
+    margin-top: 12px;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+}
+
+#tab-loot {
+    max-width: 1200px;
+}
+
+.loot-layout {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    width: 100%;
+}
+
+.loot-upload-container {
+    flex: 0 0 200px;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.loot-details-container,
+.loot-total-container {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.loot-screenshot-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.loot-nav-btn {
+    padding: 4px 10px;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.loot-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.loot-nav-btn:disabled:hover {
+    color: #aaa;
+    border-color: #0f3460;
+}
+
+.loot-screenshot-label {
+    font-size: .8rem;
+    color: #888;
+    min-width: 6rem;
+    text-align: center;
+}
+
+.loot-upload-area {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px 12px;
+    min-height: 180px;
+    background: #16213e;
+    border: 2px dashed #0f3460;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+
+.loot-upload-area:hover,
+.loot-upload-area.drag-over {
+    border-color: #e94560;
+    background: rgba(233, 69, 96, 0.08);
+}
+
+.loot-upload-area.uploading {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.loot-upload-icon {
+    font-size: 1.75rem;
+    color: #888;
+    line-height: 1;
+}
+
+.loot-upload-label {
+    color: #888;
+    font-size: .8rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.loot-upload-label code {
+    color: #e94560;
+    background: rgba(233, 69, 96, 0.12);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: .75rem;
+}
+
+.loot-upload-area .btn {
+    padding: 6px 12px;
+    font-size: .8rem;
+}
+
+.loot-empty:not([hidden]) {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    color: #666;
+    text-align: center;
+    padding: 24px 8px;
+}
+
+.loot-details-content:not([hidden]) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.loot-current-image {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.loot-current-image img {
+    max-width: 100%;
+    max-height: 280px;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+}
+
+.loot-found {
+    font-size: .85rem;
+    line-height: 1.5;
+    overflow-y: auto;
+}
+
+.loot-found-line {
+    margin: 2px 0;
+}
+
+.loot-found-bold {
+    font-weight: 600;
+    color: #53d769;
+    margin-top: 6px;
+}
+
+.loot-prices-container {
+    margin-bottom: 0;
+}
+
+.loot-global-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.loot-global-buttons .btn {
+    padding: 6px 12px;
+    font-size: .8rem;
+}
+
+.loot-item-settings {
+    display: flex;
+    gap: 8px;
+}
+
+.loot-category-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-right: 1px solid #0f3460;
+    padding-right: 8px;
+    min-width: 90px;
+}
+
+.loot-category-nav-item {
+    padding: 4px 6px;
+    font-size: .75rem;
+    color: #888;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    border-radius: 4px;
+    transition: color .15s, background .15s;
+}
+
+.loot-category-nav-item:hover {
+    color: #e0e0e0;
+}
+
+.loot-category-nav-item.active {
+    color: #e94560;
+    font-weight: 600;
+    background: rgba(233, 69, 96, 0.08);
+}
+
+.loot-category-content {
+    flex: 1;
+}
+
+.loot-item-category {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.loot-item-category.active {
+    display: flex;
+}
+
+.loot-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 4px;
+    font-size: .8rem;
+}
+
+.loot-item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.loot-item-value {
+    width: 10ch;
+    min-width: 10ch;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: .8rem;
+    background: #0d1a2d;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    color: #e0e0e0;
+    text-align: right;
+}
+
+.loot-item-value.market-value {
+    background: #4a4a00;
+    border-color: #888800;
+}
+
+.loot-item-value.modified-value {
+    font-weight: 700;
+    color: #53d769;
 }

@@ -13,6 +13,7 @@
             <button class="tab-btn tab-active" data-tab="hunt">Hunt</button>
             <button class="tab-btn" data-tab="accounts">Accounts</button>
             <button class="tab-btn" data-tab="timers">Timers</button>
+            <button class="tab-btn" data-tab="loot">Loot</button>
             <button class="tab-btn" data-tab="settings">Settings</button>
             <button class="tab-btn" data-tab="help">Issues?</button>
         </div>
@@ -76,6 +77,38 @@
             </div>
         </div>
 
+        <div id="tab-loot" class="tab-panel">
+            <div class="loot-layout">
+                <div id="loot-upload-container" class="container loot-upload-container" data-help="loot-upload">
+                    <div class="container-title">Upload</div>
+                    <div id="loot-upload-area" class="loot-upload-area">
+                        <div class="loot-upload-icon">⬆</div>
+                        <p class="loot-upload-label">Drop a <code>PNG</code> here</p>
+                        <button id="loot-upload-pick-btn" type="button" class="btn">Choose File</button>
+                        <input type="file" id="loot-upload-file-input" accept="image/png" hidden>
+                    </div>
+                </div>
+                <div id="loot-details-container" class="container loot-details-container" data-help="loot-details">
+                    <div class="container-title">Details</div>
+                    <div class="loot-screenshot-nav">
+                        <button id="loot-prev-btn" type="button" class="btn loot-nav-btn" aria-label="Previous screenshot">←</button>
+                        <span id="loot-screenshot-label" class="loot-screenshot-label">—</span>
+                        <button id="loot-next-btn" type="button" class="btn loot-nav-btn" aria-label="Next screenshot">→</button>
+                    </div>
+                    <div id="loot-details-empty" class="loot-empty">No screenshots yet.</div>
+                    <div id="loot-details-content" class="loot-details-content" hidden>
+                        <div id="loot-current-image" class="loot-current-image"></div>
+                        <div id="loot-current-found" class="loot-found"></div>
+                    </div>
+                </div>
+                <div id="loot-total-container" class="container loot-total-container" data-help="loot-total">
+                    <div class="container-title">Total</div>
+                    <div id="loot-total-empty" class="loot-empty">No screenshots yet.</div>
+                    <div id="loot-total-found" class="loot-found" hidden></div>
+                </div>
+            </div>
+        </div>
+
         <div id="tab-accounts" class="tab-panel">
             <div class="container-column">
                 <div id="acc-container" class="container acc-container" data-help="accounts">
@@ -95,15 +128,33 @@
         </div>
 
         <div id="tab-settings" class="tab-panel">
-            <div class="container-column settings-column">
-                <div class="settings-row">
-                    <div id="preset-container" class="container preset-container" data-help="preset">
-                        <div class="container-title">World Presets</div>
-                        <div id="preset-list" class="preset-list"></div>
+            <div class="settings-layout">
+                <nav class="settings-nav">
+                    <button type="button" class="settings-nav-item settings-nav-active" data-settings="preset">World presets</button>
+                    <button type="button" class="settings-nav-item" data-settings="updater">Updater</button>
+                    <button type="button" class="settings-nav-item" data-settings="loot-prices">Loot prices</button>
+                </nav>
+                <div class="settings-panels">
+                    <div id="settings-panel-preset" class="settings-panel settings-panel-active">
+                        <div id="preset-container" class="container preset-container" data-help="preset">
+                            <div class="container-title">World Presets</div>
+                            <div id="preset-list" class="preset-list"></div>
+                        </div>
                     </div>
-                    <div id="updater-container" class="container updater-container" data-help="updater">
-                        <div class="container-title">Updater</div>
-                        <div id="updater-mode-group" class="preset-list"></div>
+                    <div id="settings-panel-updater" class="settings-panel">
+                        <div id="updater-container" class="container updater-container" data-help="updater">
+                            <div class="container-title">Updater</div>
+                            <div id="updater-mode-group" class="preset-list"></div>
+                        </div>
+                    </div>
+                    <div id="settings-panel-loot-prices" class="settings-panel">
+                        <div id="loot-prices-container" class="container loot-prices-container" data-help="loot-prices">
+                            <div class="container-title">Loot Prices</div>
+                            <div class="loot-global-buttons">
+                                <button id="loot-reset-prices" type="button" class="btn">Reset Prices</button>
+                            </div>
+                            <div id="loot-item-settings" class="loot-item-settings"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -207,6 +258,34 @@
                 <li>You can replace the beep sound by placing a <code>beep.mp3</code> file in the
                     <code>%AppData%\TAssistant</code> directory and restarting TAssistant.
                 </li>
+            </ul>
+        </section>
+        <section id="help-loot-upload" class="help-section">
+            <ul>
+                <li>Only PNG screenshots are supported.</li>
+                <li>Upload a screenshot via drag-and-drop, file picker, or paste (<code>Ctrl+V</code>).</li>
+                <li>The screenshot needs to be in the original scale and quality.</li>
+                <li>Partial screenshots are the fastest to process; use (<code>Win + Shift + S</code>) to snip one. See example below.</li>
+                
+            </ul>
+            <img class="help-loot-example" src="/loot-example.png" alt="Example partial loot screenshot">
+        </section>
+        <section id="help-loot-details" class="help-section">
+            <ul>
+                <li>Use the arrow buttons or keyboard arrow keys to browse uploaded screenshots.</li>
+                <li>Prices can be customized in the Settings tab; changes recalculate all results.</li>
+            </ul>
+        </section>
+        <section id="help-loot-total" class="help-section">
+            <ul>
+                <li>Prices can be customized in the Settings tab; changes recalculate all results.</li>
+            </ul>
+        </section>
+        <section id="help-loot-prices" class="help-section">
+            <ul>
+                <li>Edit item prices to match your server's economy.</li>
+                <li>Yellow price fields indicate non-retail prices.</li>
+                <li><strong>Reset Prices</strong> restores catalog defaults and clears your overrides.</li>
             </ul>
         </section>
         <section id="help-preset" class="help-section">
