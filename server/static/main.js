@@ -1248,11 +1248,379 @@ const loot = {
     },
 };
 
+const hotkeys = {
+    keyLabels: (function () {
+        const labels = {};
+        for (let i = 0; i < 12; i++) labels[i] = `F${i + 1}`;
+        for (let i = 0; i < 12; i++) labels[i + 12] = `Shift+F${i + 1}`;
+        for (let i = 0; i < 12; i++) labels[i + 24] = `Ctrl+F${i + 1}`;
+        return labels;
+    })(),
+    getHk: function (hk, idx) {
+        return hk[idx] || hk[String(idx)] || null;
+    },
+    run: function () {
+        hotkeys.reloadList();
+    },
+    renderGrid: function (container, hk) {
+        container.innerHTML = '';
+        for (let idx = 0; idx < 36; idx++) {
+            const row = document.createElement('div');
+            row.className = 'hotkey-row';
+
+            const label = document.createElement('span');
+            label.className = 'hotkey-label';
+            label.textContent = hotkeys.keyLabels[idx];
+            row.appendChild(label);
+
+            const entry = hotkeys.getHk(hk, idx);
+            const val = document.createElement('span');
+            val.className = 'hotkey-value';
+            if (entry && entry.text) {
+                val.textContent = entry.text;
+            } else {
+                val.classList.add('hotkey-value-empty');
+            }
+            row.appendChild(val);
+
+            const asTag = document.createElement('span');
+            asTag.className = 'hotkey-autosend-tag';
+            if (entry && entry.text) {
+                asTag.classList.add(entry.autosend ? 'hotkey-autosend-on' : 'hotkey-autosend-off');
+                asTag.textContent = entry.autosend ? 'Send' : 'Type';
+                asTag.title = entry.autosend ? 'Autosend enabled' : 'Autosend disabled (type only)';
+            }
+            row.appendChild(asTag);
+
+            container.appendChild(row);
+        }
+    },
+    renderEditGrid: function (container, hk) {
+        container.innerHTML = '';
+        for (let idx = 0; idx < 36; idx++) {
+            const row = document.createElement('div');
+            row.className = 'hotkey-row';
+
+            const label = document.createElement('span');
+            label.className = 'hotkey-label';
+            label.textContent = hotkeys.keyLabels[idx];
+            row.appendChild(label);
+
+            const entry = hotkeys.getHk(hk, idx);
+            const input = document.createElement('input');
+            input.className = 'hotkey-input';
+            input.type = 'text';
+            input.value = (entry && entry.text) ? entry.text : '';
+            input.dataset.idx = idx;
+            row.appendChild(input);
+
+            const asBtn = document.createElement('button');
+            asBtn.type = 'button';
+            asBtn.className = 'btn hotkey-autosend-btn';
+            asBtn.dataset.idx = idx;
+            const isOn = entry ? entry.autosend : true;
+            hotkeys.setAutosendBtn(asBtn, isOn);
+            asBtn.addEventListener('click', () => {
+                const on = !asBtn.classList.contains('hotkey-autosend-btn-on');
+                hotkeys.setAutosendBtn(asBtn, on);
+            });
+            row.appendChild(asBtn);
+
+            container.appendChild(row);
+        }
+    },
+    setAutosendBtn: function (btn, on) {
+        btn.classList.toggle('hotkey-autosend-btn-on', on);
+        btn.classList.toggle('hotkey-autosend-btn-off', !on);
+        btn.textContent = on ? 'Send' : 'Type';
+        btn.title = on ? 'Autosend enabled (click to toggle)' : 'Autosend disabled (click to toggle)';
+    },
+    collectEdits: function (gridEl) {
+        const updated = {};
+        gridEl.querySelectorAll('.hotkey-row').forEach((row) => {
+            const input = row.querySelector('.hotkey-input');
+            const asBtn = row.querySelector('.hotkey-autosend-btn');
+            if (!input) return;
+            const val = input.value.trim();
+            if (val) {
+                updated[Number(input.dataset.idx)] = {
+                    text: val,
+                    autosend: asBtn ? asBtn.classList.contains('hotkey-autosend-btn-on') : true,
+                };
+            }
+        });
+        return updated;
+    },
+    reloadList: async function () {
+        const resp = await fetch('/api/hotkeys/list');
+        if (!resp.ok) return;
+        const d = await resp.json();
+
+        const listEl = document.getElementById('hotkey-list');
+        listEl.innerHTML = '';
+
+        for (const entry of d) {
+            const entryEl = document.createElement('div');
+            entryEl.className = 'hotkey-entry';
+            entryEl.dataset.id = entry.id;
+            entryEl.dataset.name = entry.name;
+
+            const headerEl = document.createElement('div');
+            headerEl.className = 'hotkey-entry-header';
+            entryEl.appendChild(headerEl);
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'hotkey-entry-name';
+            nameEl.textContent = entry.name;
+            headerEl.appendChild(nameEl);
+
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'hotkey-entry-btns';
+
+            const loadBtn = document.createElement('button');
+            loadBtn.textContent = 'Load';
+            loadBtn.className = 'btn hotkey-btn';
+            loadBtn.addEventListener('click', (ev) => { ev.stopPropagation(); hotkeys.hdlLoad(entry.id, entry.name); });
+            btnGroup.appendChild(loadBtn);
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'btn hotkey-btn';
+            editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); hotkeys.hdlEdit(entry.id); });
+            btnGroup.appendChild(editBtn);
+
+            const renameBtn = document.createElement('button');
+            renameBtn.textContent = 'Rename';
+            renameBtn.className = 'btn hotkey-btn';
+            renameBtn.addEventListener('click', (ev) => { ev.stopPropagation(); hotkeys.hdlRename(entry.id, entry.name); });
+            btnGroup.appendChild(renameBtn);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'btn hotkey-btn';
+            deleteBtn.addEventListener('click', (ev) => { ev.stopPropagation(); hotkeys.hdlDelete(entry.id, entry.name); });
+            btnGroup.appendChild(deleteBtn);
+
+            headerEl.appendChild(btnGroup);
+
+            headerEl.addEventListener('click', (ev) => {
+                if (ev.target.closest('button')) return;
+                hotkeys.hdlTogglePreview(entry.id);
+            });
+
+            const previewEl = document.createElement('div');
+            previewEl.className = 'hotkey-preview';
+            previewEl.hidden = true;
+            entryEl.appendChild(previewEl);
+
+            listEl.appendChild(entryEl);
+        }
+
+        {
+            const storeEl = document.createElement('div');
+            storeEl.className = 'hotkey-entry hotkey-entry-new';
+
+            const nameInput = document.createElement('input');
+            nameInput.className = 'hotkey-entry-name';
+            nameInput.placeholder = 'Config name';
+            storeEl.appendChild(nameInput);
+
+            const storeBtn = document.createElement('button');
+            storeBtn.textContent = 'Store';
+            storeBtn.className = 'btn hotkey-btn';
+            storeBtn.addEventListener('click', () => hotkeys.hdlStore(nameInput));
+            storeEl.appendChild(storeBtn);
+
+            listEl.appendChild(storeEl);
+        }
+    },
+    hdlTogglePreview: async function (id) {
+        const entryEl = document.querySelector(`.hotkey-entry[data-id="${id}"]`);
+        if (!entryEl) return;
+        if (entryEl.querySelector('.hotkey-edit-container')) return;
+        const previewEl = entryEl.querySelector('.hotkey-preview');
+        if (!previewEl) return;
+
+        if (!previewEl.hidden) {
+            previewEl.hidden = true;
+            return;
+        }
+
+        if (!previewEl.dataset.loaded) {
+            const r = await fetch('/api/hotkeys/detail', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+            if (!r.ok) {
+                toast.msg('Error: ' + await r.text());
+                return;
+            }
+            const cfg = await r.json();
+            const gridEl = document.createElement('div');
+            gridEl.className = 'hotkey-grid';
+            hotkeys.renderGrid(gridEl, cfg.hotkeys);
+            previewEl.appendChild(gridEl);
+            previewEl.dataset.loaded = '1';
+        }
+
+        previewEl.hidden = false;
+    },
+    hdlStore: async function (nameInput) {
+        const name = nameInput.value.trim() || 'Unnamed';
+        const r = await fetch('/api/hotkeys/store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+        if (r.ok) {
+            toast.msg(`Stored "${name}".`);
+            nameInput.value = '';
+            hotkeys.reloadList();
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
+    hdlLoad: async function (id, name) {
+        const r = await fetch('/api/hotkeys/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        if (r.ok) {
+            toast.msg(`Loaded "${name}".`);
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
+    hdlRename: async function (id, name) {
+        const newName = prompt(`Rename "${name}":`, name);
+        if (newName === null) return;
+        const trimmed = newName.trim();
+        if (trimmed === '' || trimmed === name) return;
+
+        const r = await fetch('/api/hotkeys/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name: trimmed }) });
+        if (r.ok) {
+            toast.msg(`Renamed to "${trimmed}".`);
+            hotkeys.reloadList();
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
+    hdlDelete: async function (id, name) {
+        if (!confirm(`Delete "${name}"?`)) return;
+        const r = await fetch('/api/hotkeys/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        if (r.ok) {
+            toast.msg(`Deleted "${name}".`);
+            hotkeys.reloadList();
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
+    hdlEdit: async function (id) {
+        const entryEl = document.querySelector(`.hotkey-entry[data-id="${id}"]`);
+        if (!entryEl) return;
+
+        let editContainer = entryEl.querySelector('.hotkey-edit-container');
+        if (editContainer) {
+            editContainer.remove();
+            return;
+        }
+
+        const previewEl = entryEl.querySelector('.hotkey-preview');
+        if (previewEl) previewEl.hidden = true;
+
+        const r = await fetch('/api/hotkeys/detail', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        if (!r.ok) {
+            toast.msg('Error: ' + await r.text());
+            return;
+        }
+        const cfg = await r.json();
+
+        editContainer = document.createElement('div');
+        editContainer.className = 'hotkey-edit-container';
+        entryEl.appendChild(editContainer);
+
+        const gridEl = document.createElement('div');
+        gridEl.className = 'hotkey-grid';
+        editContainer.appendChild(gridEl);
+        hotkeys.renderEditGrid(gridEl, cfg.hotkeys);
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn hotkey-section-btn';
+        saveBtn.textContent = 'Save changes';
+        saveBtn.addEventListener('click', async () => {
+            const updated = hotkeys.collectEdits(gridEl);
+            const saveResp = await fetch('/api/hotkeys/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, hotkeys: updated }) });
+            if (saveResp.ok) {
+                toast.msg('Config saved.');
+                editContainer.remove();
+                if (previewEl) { previewEl.dataset.loaded = ''; previewEl.innerHTML = ''; }
+            } else {
+                toast.msg('Error: ' + await saveResp.text());
+            }
+        });
+        editContainer.appendChild(saveBtn);
+    },
+};
+
+const clientPaths = {
+    placeholders: {
+        ancestra: 'e.g. C:\\Tibiantis\\',
+        concordia: 'e.g. C:\\Tibiantis\\',
+        relic: 'e.g. C:\\TibiaRelic\\',
+    },
+    run: async function () {
+        const [pathsResp, presetsResp] = await Promise.all([
+            fetch('/api/settings/client-paths'),
+            fetch('/api/preset/list'),
+        ]);
+        if (!pathsResp.ok || !presetsResp.ok) return;
+        const paths = await pathsResp.json();
+        const presets = await presetsResp.json();
+
+        const formEl = document.getElementById('client-paths-form');
+        formEl.innerHTML = '';
+
+        for (const id of presets.available) {
+            const label = document.createElement('label');
+            label.className = 'client-path-label';
+            const span = document.createElement('span');
+            span.textContent = id.charAt(0).toUpperCase() + id.slice(1);
+            label.appendChild(span);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'client-path-input';
+            input.dataset.world = id;
+            input.placeholder = clientPaths.placeholders[id] || 'Installation path';
+            input.value = paths[id] || '';
+            label.appendChild(input);
+
+            formEl.appendChild(label);
+        }
+
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'btn client-paths-save-btn';
+        saveBtn.textContent = 'Save';
+        saveBtn.addEventListener('click', clientPaths.hdlSave);
+        formEl.appendChild(saveBtn);
+    },
+    hdlSave: async function () {
+        const inputs = document.querySelectorAll('#client-paths-form .client-path-input');
+        const payload = {};
+        inputs.forEach((input) => {
+            payload[input.dataset.world] = input.value.trim();
+        });
+
+        const r = await fetch('/api/settings/client-paths', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (r.ok) {
+            toast.msg('Client paths saved.');
+        } else {
+            toast.msg('Error: ' + await r.text());
+        }
+    },
+};
+
 tabs.run();
 containerHelp.run();
 settingsNav.run();
 preset.run();
 updaterSettings.run();
+clientPaths.run();
 keepalive.run();
 version.run();
 update.run();
@@ -1261,3 +1629,4 @@ acc.run();
 world.run();
 timers.run();
 loot.run();
+hotkeys.run();

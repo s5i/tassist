@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.29 - 2026-06-23
+
+- New: added a hotkey manager.
+
 ## v0.0.28 - 2026-06-23
 
 - New: added a loot calculator.

@@ -22,9 +22,10 @@ type Storage struct {
 }
 
 type StoredSettings struct {
-	Preset      string `yaml:"preset"`
-	UpdaterMode string `yaml:"updater_mode,omitempty"`
-	SkipVersion string `yaml:"skip_version,omitempty"`
+	Preset      string            `yaml:"preset"`
+	UpdaterMode string            `yaml:"updater_mode,omitempty"`
+	SkipVersion string            `yaml:"skip_version,omitempty"`
+	ClientPaths map[string]string `yaml:"client_paths,omitempty"`
 }
 
 func New(dir string) (*Storage, error) {
@@ -101,6 +102,33 @@ func (s *Storage) SetUpdaterMode(mode string) error {
 func (s *Storage) SetSkipVersion(v string) error {
 	s.stored.SkipVersion = v
 	return s.save()
+}
+
+func (s *Storage) ClientPath(world string) string {
+	if s.stored.ClientPaths == nil {
+		return ""
+	}
+	return s.stored.ClientPaths[world]
+}
+
+func (s *Storage) SetClientPath(world, path string) error {
+	if s.stored.ClientPaths == nil {
+		s.stored.ClientPaths = make(map[string]string)
+	}
+	if path == "" {
+		delete(s.stored.ClientPaths, world)
+	} else {
+		s.stored.ClientPaths[world] = path
+	}
+	return s.save()
+}
+
+func (s *Storage) CfgPath() string {
+	p := s.ClientPath(s.preset.World)
+	if p == "" {
+		return ""
+	}
+	return filepath.Join(p, "game", s.preset.CfgName)
 }
 
 func (s *Storage) save() error {

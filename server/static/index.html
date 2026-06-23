@@ -11,9 +11,10 @@
     <div class="tab-bar">
         <div class="tab-bar-tabs">
             <button class="tab-btn tab-active" data-tab="hunt">Hunt</button>
-            <button class="tab-btn" data-tab="accounts">Accounts</button>
-            <button class="tab-btn" data-tab="timers">Timers</button>
             <button class="tab-btn" data-tab="loot">Loot</button>
+            <button class="tab-btn" data-tab="timers">Timers</button>
+            <button class="tab-btn" data-tab="accounts">Accounts</button>
+            <button class="tab-btn" data-tab="hotkeys">Hotkeys</button>
             <button class="tab-btn" data-tab="settings">Settings</button>
             <button class="tab-btn" data-tab="help">Issues?</button>
         </div>
@@ -91,9 +92,11 @@
                 <div id="loot-details-container" class="container loot-details-container" data-help="loot-details">
                     <div class="container-title">Details</div>
                     <div class="loot-screenshot-nav">
-                        <button id="loot-prev-btn" type="button" class="btn loot-nav-btn" aria-label="Previous screenshot">←</button>
+                        <button id="loot-prev-btn" type="button" class="btn loot-nav-btn"
+                            aria-label="Previous screenshot">←</button>
                         <span id="loot-screenshot-label" class="loot-screenshot-label">—</span>
-                        <button id="loot-next-btn" type="button" class="btn loot-nav-btn" aria-label="Next screenshot">→</button>
+                        <button id="loot-next-btn" type="button" class="btn loot-nav-btn"
+                            aria-label="Next screenshot">→</button>
                     </div>
                     <div id="loot-details-empty" class="loot-empty">No screenshots yet.</div>
                     <div id="loot-details-content" class="loot-details-content" hidden>
@@ -109,15 +112,6 @@
             </div>
         </div>
 
-        <div id="tab-accounts" class="tab-panel">
-            <div class="container-column">
-                <div id="acc-container" class="container acc-container" data-help="accounts">
-                    <div class="container-title">Account Switcher</div>
-                    <div id="acc-list" class="acc-list"></div>
-                </div>
-            </div>
-        </div>
-
         <div id="tab-timers" class="tab-panel">
             <div class="container-column">
                 <div id="timer-container" class="container timer-container" data-help="timers">
@@ -127,10 +121,30 @@
             </div>
         </div>
 
+        <div id="tab-accounts" class="tab-panel">
+            <div class="container-column">
+                <div id="acc-container" class="container acc-container" data-help="accounts">
+                    <div class="container-title">Account Switcher</div>
+                    <div id="acc-list" class="acc-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-hotkeys" class="tab-panel">
+            <div class="container-column">
+                <div id="hotkey-container" class="container hotkey-container" data-help="hotkeys">
+                    <div class="container-title">Hotkey Manager</div>
+                    <div id="hotkey-list" class="hotkey-list"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="tab-settings" class="tab-panel">
             <div class="settings-layout">
                 <nav class="settings-nav">
-                    <button type="button" class="settings-nav-item settings-nav-active" data-settings="preset">World presets</button>
+                    <button type="button" class="settings-nav-item settings-nav-active" data-settings="preset">World
+                        presets</button>
+                    <button type="button" class="settings-nav-item" data-settings="client-paths">Client paths</button>
                     <button type="button" class="settings-nav-item" data-settings="updater">Updater</button>
                     <button type="button" class="settings-nav-item" data-settings="loot-prices">Loot prices</button>
                 </nav>
@@ -139,6 +153,12 @@
                         <div id="preset-container" class="container preset-container" data-help="preset">
                             <div class="container-title">World Presets</div>
                             <div id="preset-list" class="preset-list"></div>
+                        </div>
+                    </div>
+                    <div id="settings-panel-client-paths" class="settings-panel">
+                        <div id="client-paths-container" class="container" data-help="client-paths">
+                            <div class="container-title">Client Paths</div>
+                            <div id="client-paths-form" class="client-paths-form"></div>
                         </div>
                     </div>
                     <div id="settings-panel-updater" class="settings-panel">
@@ -239,7 +259,8 @@
                 <li>How does this work? <ul>
                         <li>The game client keeps the (encrypted) credentials in Windows Registry.</li>
                         <li>When storing an account, we copy the relevant registry keys into
-                            <code>%AppData%\TAssistant\accounts.yaml</code>.</li>
+                            <code>%AppData%\TAssistant\accounts.yaml</code>.
+                        </li>
                         <li>When loading an account, we restore the relevant registry keys.</li>
                     </ul>
                 </li>
@@ -265,8 +286,9 @@
                 <li>Only PNG screenshots are supported.</li>
                 <li>Upload a screenshot via drag-and-drop, file picker, or paste (<code>Ctrl+V</code>).</li>
                 <li>The screenshot needs to be in the original scale and quality.</li>
-                <li>Partial screenshots are the fastest to process; use (<code>Win + Shift + S</code>) to snip one. See example below.</li>
-                
+                <li>Partial screenshots are the fastest to process; use (<code>Win + Shift + S</code>) to snip one. See
+                    example below.</li>
+
             </ul>
             <img class="help-loot-example" src="/loot-example.png" alt="Example partial loot screenshot">
         </section>
@@ -292,6 +314,31 @@
             <ul>
                 <li>Clicking on a world name reloads TAssistant with settings tuned to a given world
                     (players online, server IPs, client window name, etc).</li>
+            </ul>
+        </section>
+        <section id="help-hotkeys" class="help-section">
+            <ul>
+                <li>Configure the client installation path under <strong>Settings → Client paths</strong> before storing
+                    or loading hotkeys.</li>
+                <li><strong>Store</strong> reads the current hotkey bindings from the game's config file and saves them
+                    under the given name.</li>
+                <li>
+                    <strong>Load</strong> writes a stored config into the game's config file. The existing config is
+                    backed up as <code>.cfg.bak</code>.
+                    <ul>
+                        <li><strong>Loading requires the game client to be closed.</strong></li>
+                    </ul>
+                </li>
+                <li><strong>Edit</strong> opens an inline editor for individual bindings.</li>
+                <li><strong>Send</strong> or <strong>Type</strong> indicates autosend behavior.</li>
+            </ul>
+        </section>
+        <section id="help-client-paths" class="help-section">
+            <ul>
+                <li>Set the installation path for each game client.</li>
+                <li>These paths are used by the Hotkey Manager to locate the configuration files.</li>
+                <li>Tibiantis path is used for Ancestra and Concordia presets.</li>
+                <li>Relic path is used for the Relic preset.</li>
             </ul>
         </section>
         <section id="help-updater" class="help-section">

@@ -25,6 +25,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/s5i/tassist/acc"
 	"github.com/s5i/tassist/exp"
+	"github.com/s5i/tassist/hotkey"
 	"github.com/s5i/tassist/loot"
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
@@ -38,7 +39,7 @@ import (
 
 var ErrRestart = fmt.Errorf("server is restarting...")
 
-func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage, lootSvc *loot.Service, lootStorage *loot.Storage) (*Server, error) {
+func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage, lootSvc *loot.Service, lootStorage *loot.Storage, hkStorage *hotkey.Storage) (*Server, error) {
 	s := &Server{
 		dataDir:              dataDir,
 		tmpDir:               tmpDir,
@@ -51,6 +52,7 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 		tmStorage:            tmStorage,
 		loot:                 lootSvc,
 		lootStorage:          lootStorage,
+		hkStorage:            hkStorage,
 		keepalive:            time.Now(),
 		keepaliveCheckPeriod: 2 * time.Second,
 		keepaliveFails:       3,
@@ -93,6 +95,14 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 	mux.HandleFunc("/api/loot/items", s.handleLootItems)
 	mux.HandleFunc("/api/loot/prices", s.handleLootPrices)
 	mux.HandleFunc("/api/loot/process", s.handleLootProcess)
+	mux.HandleFunc("/api/hotkeys/list", s.handleHotkeysList)
+	mux.HandleFunc("/api/hotkeys/store", s.handleHotkeysStore)
+	mux.HandleFunc("/api/hotkeys/load", s.handleHotkeysLoad)
+	mux.HandleFunc("/api/hotkeys/rename", s.handleHotkeysRename)
+	mux.HandleFunc("/api/hotkeys/delete", s.handleHotkeysDelete)
+	mux.HandleFunc("/api/hotkeys/update", s.handleHotkeysUpdate)
+	mux.HandleFunc("/api/hotkeys/detail", s.handleHotkeysDetail)
+	mux.HandleFunc("/api/settings/client-paths", s.handleClientPaths)
 	s.mux = mux
 
 	return s, nil
@@ -169,16 +179,17 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 type Server struct {
-	dataDir   string
-	tmpDir    string
-	acc       *acc.Storage
-	exp       *exp.Cache
-	pinger    *ping.Pinger
-	online    *online.Online
+	dataDir     string
+	tmpDir      string
+	acc         *acc.Storage
+	exp         *exp.Cache
+	pinger      *ping.Pinger
+	online      *online.Online
 	stStorage   *settings.Storage
 	tmStorage   *timer.Storage
 	loot        *loot.Service
 	lootStorage *loot.Storage
+	hkStorage   *hotkey.Storage
 
 	srv *http.Server
 	mux *http.ServeMux
@@ -1035,6 +1046,236 @@ func (s *Server) handleTimerList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
+}
+
+func (s *Server) handleClientPaths(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		out := make(map[string]string)
+		for id := range settings.Presets {
+			if p := s.stStorage.ClientPath(id); p != "" {
+				out[id] = p
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(out)
+	case http.MethodPost:
+		var req map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		for world, path := range req {
+			if err := s.stStorage.SetClientPath(world, path); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		log.Printf("Client paths updated.")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{}"))
+	default:
+		http.Error(w, "GET/POST only", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Server) handleHotkeysList(w http.ResponseWriter, r *http.Request) {
+	configs := s.hkStorage.List(s.stStorage.Preset().Server)
+	type hkRow struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	out := []hkRow{}
+	for _, c := range configs {
+		out = append(out, hkRow{ID: c.ID, Name: c.Name})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
+func (s *Server) handleHotkeysStore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cfgPath := s.stStorage.CfgPath()
+	if cfgPath == "" {
+		http.Error(w, "Client path not configured. Set it in Settings.", http.StatusBadRequest)
+		return
+	}
+
+	hk, err := hotkey.ReadConfig(cfgPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	id := uuid.New().String()[:8]
+	name := req.Name
+	if name == "" {
+		name = "Unnamed"
+	}
+
+	cfg := &hotkey.Config{
+		ID:      id,
+		Server:  s.stStorage.Preset().Server,
+		Name:    name,
+		Hotkeys: hk,
+	}
+	if err := s.hkStorage.Add(cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Hotkey config %q (ID=%q) stored.", name, id)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}{ID: id, Name: name})
+}
+
+func (s *Server) handleHotkeysLoad(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := hotkey.ErrClientRunning(s.stStorage.Preset().ClientWindowTitle); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+
+	cfg, found := s.hkStorage.Find(req.ID)
+	if !found {
+		http.Error(w, "Config not found.", http.StatusNotFound)
+		return
+	}
+
+	cfgPath := s.stStorage.CfgPath()
+	if cfgPath == "" {
+		http.Error(w, "Client path not configured. Set it in Settings.", http.StatusBadRequest)
+		return
+	}
+
+	if err := hotkey.WriteConfig(cfgPath, cfg.Hotkeys); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Hotkey config %q (ID=%q) loaded.", cfg.Name, cfg.ID)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleHotkeysRename(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.hkStorage.Rename(req.ID, req.Name); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("Hotkey config ID=%q renamed to %q.", req.ID, req.Name)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleHotkeysDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.hkStorage.Delete(req.ID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("Hotkey config ID=%q deleted.", req.ID)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleHotkeysUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID      string                `json:"id"`
+		Hotkeys map[int]hotkey.Hotkey `json:"hotkeys"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cfg, found := s.hkStorage.Find(req.ID)
+	if !found {
+		http.Error(w, "Config not found.", http.StatusNotFound)
+		return
+	}
+
+	cfg.Hotkeys = req.Hotkeys
+	if err := s.hkStorage.Update(cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Hotkey config %q (ID=%q) updated.", cfg.Name, cfg.ID)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func (s *Server) handleHotkeysDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cfg, found := s.hkStorage.Find(req.ID)
+	if !found {
+		http.Error(w, "Config not found.", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(cfg)
 }
 
 func (s *Server) handleBeep(w http.ResponseWriter, r *http.Request) {

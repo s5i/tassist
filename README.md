@@ -20,3 +20,4 @@ Alternatively, you're free to audit and compile the code yourself:
 ![Accounts tab](https://raw.github.com/s5i/tassist/main/screenshots/accounts.png)
 ![Timers tab](https://raw.github.com/s5i/tassist/main/screenshots/timers.gif)
 ![Loot tab](https://raw.github.com/s5i/tassist/main/screenshots/loot.png)
+![Hotkeys tab](https://raw.github.com/s5i/tassist/main/screenshots/hotkeys.png)

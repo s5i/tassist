@@ -15,6 +15,7 @@ import (
 	"github.com/s5i/goutil/version"
 	"github.com/s5i/tassist/acc"
 	"github.com/s5i/tassist/exp"
+	"github.com/s5i/tassist/hotkey"
 	"github.com/s5i/tassist/loot"
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
@@ -122,7 +123,13 @@ func mainErr() (retErr error) {
 		return err
 	}
 
-	srv, err := server.New(*dir, *tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage, loot.NewService(), lootStorage)
+	hkStorage, err := hotkey.NewStorage(*dir)
+	if err != nil {
+		log.Printf("hotkey.NewStorage() failed: %v", err)
+		return err
+	}
+
+	srv, err := server.New(*dir, *tmpDir, accStorage, expCache, pinger, online, ver, stStorage, tmStorage, loot.NewService(), lootStorage, hkStorage)
 	if err != nil {
 		log.Printf("server.New() failed: %v", err)
 		return err

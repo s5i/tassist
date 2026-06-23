@@ -1037,3 +1037,267 @@ body {
     font-weight: 700;
     color: #53d769;
 }
+
+#tab-hotkeys {
+    max-width: 700px;
+}
+
+.hotkey-section-btn {
+    padding: 8px 14px;
+    font-size: .85rem;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.hotkey-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hotkey-entry {
+    display: flex;
+    flex-direction: column;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: background .15s, border-color .15s;
+}
+
+.hotkey-entry-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.hotkey-entry-header:hover {
+    color: #e94560;
+}
+
+.hotkey-entry-new {
+    flex-direction: row;
+    align-items: center;
+    cursor: default;
+}
+
+.hotkey-entry-name {
+    flex: 1;
+    min-width: 0;
+    font-size: .95rem;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hotkey-entry-new .hotkey-entry-name {
+    outline: none;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    font-family: inherit;
+    padding: 2px 0;
+}
+
+.hotkey-entry-new .hotkey-entry-name:focus {
+    border-bottom-color: #e94560;
+}
+
+.hotkey-entry-btns {
+    display: flex;
+    gap: 6px;
+}
+
+.hotkey-preview {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #0f3460;
+}
+
+.hotkey-preview[hidden] {
+    display: none;
+}
+
+.hotkey-btn {
+    padding: 4px 10px;
+}
+
+.hotkey-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    width: 100%;
+}
+
+.hotkey-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hotkey-label {
+    flex: 0 0 90px;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #888;
+    text-align: right;
+}
+
+.hotkey-value {
+    flex: 1;
+    font-size: .85rem;
+    color: #e0e0e0;
+    font-family: 'Consolas', 'Courier New', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hotkey-value-empty {
+    color: #444;
+}
+
+.hotkey-value-empty::before {
+    content: '—';
+}
+
+.hotkey-input {
+    flex: 1;
+    font-size: .85rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #e0e0e0;
+    background: #0d1a2d;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    padding: 4px 8px;
+    outline: none;
+}
+
+.hotkey-input:focus {
+    border-color: #e94560;
+}
+
+.hotkey-autosend-tag {
+    flex: 0 0 auto;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 36px;
+    text-align: center;
+}
+
+.hotkey-autosend-on {
+    color: #53d769;
+    background: rgba(83, 215, 105, 0.12);
+}
+
+.hotkey-autosend-off {
+    color: #888;
+    background: rgba(136, 136, 136, 0.12);
+}
+
+.hotkey-autosend-btn {
+    flex: 0 0 auto;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    min-width: 42px;
+    text-align: center;
+    cursor: pointer;
+    transition: color .15s, background .15s, border-color .15s;
+}
+
+.hotkey-autosend-btn-on {
+    color: #53d769;
+    background: rgba(83, 215, 105, 0.12);
+    border-color: #53d769;
+}
+
+.hotkey-autosend-btn-on:hover {
+    color: #7fff9a;
+    background: rgba(83, 215, 105, 0.2);
+}
+
+.hotkey-autosend-btn-off {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.12);
+    border-color: #ff4444;
+}
+
+.hotkey-autosend-btn-off:hover {
+    color: #ff6666;
+    background: rgba(255, 68, 68, 0.2);
+}
+
+.hotkey-empty {
+    color: #666;
+    font-size: .85rem;
+    padding: 12px 0;
+    text-align: center;
+}
+
+.hotkey-edit-container {
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hotkey-edit-info {
+    font-size: .8rem;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.hotkey-edit-actions {
+    margin-top: 8px;
+}
+
+.client-paths-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.client-path-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: .85rem;
+    color: #888;
+}
+
+.client-path-input {
+    font-size: .85rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #e0e0e0;
+    background: #0d1a2d;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    padding: 8px 10px;
+    outline: none;
+}
+
+.client-path-input:focus {
+    border-color: #e94560;
+}
+
+.client-paths-save-btn {
+    padding: 8px 14px;
+    font-size: .85rem;
+    align-self: flex-start;
+}
