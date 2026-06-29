@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.0.30 - 2026-06-29
+
+- App lifecycle changes:
+  - Reintroduced the tray icon.
+  - The server no longer dies when it receives no pings from the client.
+  - The server is limited to a single instance (PID-based checks).
+  - The server now uses a static port.
+
 ## v0.0.29 - 2026-06-23
 
 - New: added a hotkey manager.

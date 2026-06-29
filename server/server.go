@@ -39,24 +39,26 @@ import (
 
 var ErrRestart = fmt.Errorf("server is restarting...")
 
+const ListenAddr = "127.0.0.1:2137"
+
+func BaseURL() string {
+	return "http://" + ListenAddr
+}
+
 func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, pinger *ping.Pinger, online *online.Online, version string, stStorage *settings.Storage, tmStorage *timer.Storage, lootSvc *loot.Service, lootStorage *loot.Storage, hkStorage *hotkey.Storage) (*Server, error) {
 	s := &Server{
-		dataDir:              dataDir,
-		tmpDir:               tmpDir,
-		acc:                  accStorage,
-		exp:                  expCache,
-		pinger:               pinger,
-		online:               online,
-		version:              version,
-		stStorage:            stStorage,
-		tmStorage:            tmStorage,
-		loot:                 lootSvc,
-		lootStorage:          lootStorage,
-		hkStorage:            hkStorage,
-		keepalive:            time.Now(),
-		keepaliveCheckPeriod: 2 * time.Second,
-		keepaliveFails:       3,
-		keepaliveTimeout:     15 * time.Second,
+		dataDir:     dataDir,
+		tmpDir:      tmpDir,
+		acc:         accStorage,
+		exp:         expCache,
+		pinger:      pinger,
+		online:      online,
+		version:     version,
+		stStorage:   stStorage,
+		tmStorage:   tmStorage,
+		loot:        lootSvc,
+		lootStorage: lootStorage,
+		hkStorage:   hkStorage,
 	}
 
 	mux := http.NewServeMux()
@@ -109,7 +111,7 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", ListenAddr)
 	if err != nil {
 		return err
 	}
@@ -132,36 +134,6 @@ func (s *Server) Run(ctx context.Context) error {
 		<-ctx.Done()
 		s.srv.Shutdown(ctx)
 		return ctx.Err()
-	})
-
-	eg.Go(func() error {
-		fails := 0
-		for {
-			s.keepaliveMu.Lock()
-			if time.Now().After(s.keepalive.Add(s.keepaliveTimeout)) {
-				fails++
-			} else {
-				fails = 0
-			}
-			s.keepaliveMu.Unlock()
-
-			if fails >= s.keepaliveFails {
-				log.Printf("Last %d ping checks showed no activity within the last %v; quitting.", s.keepaliveFails, s.keepaliveTimeout)
-				cancel()
-				return context.Canceled
-			}
-
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(s.keepaliveCheckPeriod):
-			}
-		}
-	})
-
-	eg.Go(func() error {
-		exec.Command("explorer", "http://"+s.ln.Addr().String()).Start()
-		return nil
 	})
 
 	eg.Go(func() error {
@@ -197,12 +169,7 @@ type Server struct {
 
 	version string
 
-	cancel               func()
-	keepalive            time.Time
-	keepaliveTimeout     time.Duration
-	keepaliveFails       int
-	keepaliveCheckPeriod time.Duration
-	keepaliveMu          sync.Mutex
+	cancel func()
 
 	updateReady   bool
 	updaterPath   string
@@ -445,10 +412,6 @@ func (s *Server) handleWorldOnline(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleKeepalive(w http.ResponseWriter, r *http.Request) {
-	s.keepaliveMu.Lock()
-	defer s.keepaliveMu.Unlock()
-	s.keepalive = time.Now()
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("{}"))
 }

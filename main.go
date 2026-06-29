@@ -16,12 +16,14 @@ import (
 	"github.com/s5i/tassist/acc"
 	"github.com/s5i/tassist/exp"
 	"github.com/s5i/tassist/hotkey"
+	"github.com/s5i/tassist/instance"
 	"github.com/s5i/tassist/loot"
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
 	"github.com/s5i/tassist/server"
 	"github.com/s5i/tassist/settings"
 	"github.com/s5i/tassist/timer"
+	"github.com/s5i/tassist/tray"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -70,6 +72,17 @@ func mainErr() (retErr error) {
 	if err := os.MkdirAll(*tmpDir, 0755); err != nil {
 		return err
 	}
+
+	release, alreadyRunning, err := instance.Acquire(*tmpDir)
+	if err != nil {
+		return err
+	}
+	if alreadyRunning {
+		log.Printf("Another instance is already running; opening browser.")
+		tray.OpenBrowser(server.BaseURL())
+		return nil
+	}
+	defer release()
 
 	if err := os.MkdirAll(*dir, 0755); err != nil {
 		return err
@@ -154,6 +167,13 @@ func mainErr() (retErr error) {
 	eg.Go(func() error {
 		defer logPanic()
 		return srv.Run(ctx)
+	})
+
+	eg.Go(func() error {
+		defer logPanic()
+		tray.OpenBrowser(server.BaseURL())
+		tray.Run(server.BaseURL(), cancel)
+		return nil
 	})
 
 	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
