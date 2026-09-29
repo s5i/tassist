@@ -3,6 +3,7 @@
 package tray
 
 import (
+	"context"
 	_ "embed"
 	"os/exec"
 
@@ -12,11 +13,11 @@ import (
 //go:embed favicon.ico
 var favicon []byte
 
-func Run(url string, onQuit func()) {
-	systray.Run(func() { onReady(url) }, onQuit)
+func Run(ctx context.Context, url string, onQuit func()) {
+	systray.Run(func() { onReady(ctx, url) }, onQuit)
 }
 
-func onReady(url string) {
+func onReady(ctx context.Context, url string) {
 	systray.SetIcon(favicon)
 	systray.SetTooltip("Tibiantis Assistant")
 
@@ -27,6 +28,9 @@ func onReady(url string) {
 	go func() {
 		for {
 			select {
+			case <-ctx.Done():
+				systray.Quit()
+				return
 			case <-mOpen.ClickedCh:
 				OpenBrowser(url)
 			case <-mQuit.ClickedCh:

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.32 - 2026-09-29
+
+- Fixed an issue where the systray thread would block an externally triggered shutdown (eg. during an update).
+
 ## v0.0.31 - 2026-09-29
 
 - New: added autostart settings.

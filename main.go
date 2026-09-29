@@ -167,16 +167,18 @@ func mainErr() (retErr error) {
 
 	eg.Go(func() error {
 		defer logPanic()
-		return srv.Run(ctx)
+		if *openBrowser {
+			tray.OpenBrowser(server.BaseURL())
+		}
+		tray.Run(ctx, server.BaseURL(), cancel)
+		return nil
 	})
 
 	eg.Go(func() error {
 		defer logPanic()
-		if *openBrowser {
-			tray.OpenBrowser(server.BaseURL())
-		}
-		tray.Run(server.BaseURL(), cancel)
-		return nil
+		defer cancel()
+
+		return srv.Run(ctx)
 	})
 
 	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
