@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.31 - 2026-09-29
+
+- New: added autostart settings.
+
 ## v0.0.30 - 2026-06-29
 
 - App lifecycle changes:

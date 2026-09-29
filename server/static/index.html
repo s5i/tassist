@@ -145,6 +145,7 @@
                     <button type="button" class="settings-nav-item settings-nav-active" data-settings="preset">World
                         presets</button>
                     <button type="button" class="settings-nav-item" data-settings="client-paths">Client paths</button>
+                    <button type="button" class="settings-nav-item" data-settings="startup">Autostart</button>
                     <button type="button" class="settings-nav-item" data-settings="updater">Updater</button>
                     <button type="button" class="settings-nav-item" data-settings="loot-prices">Loot prices</button>
                 </nav>
@@ -159,6 +160,19 @@
                         <div id="client-paths-container" class="container" data-help="client-paths">
                             <div class="container-title">Client Paths</div>
                             <div id="client-paths-form" class="client-paths-form"></div>
+                        </div>
+                    </div>
+                    <div id="settings-panel-startup" class="settings-panel">
+                        <div id="startup-container" class="container" data-help="startup">
+                            <div class="container-title">Autostart</div>
+                            <div class="startup-setting-row">
+                                <span class="startup-setting-label">Launch on Windows startup</span>
+                                <div id="startup-run-group" class="startup-toggle-group"></div>
+                            </div>
+                            <div id="startup-open-browser-row" class="startup-setting-row">
+                                <span class="startup-setting-label">Open the browser tab</span>
+                                <div id="startup-open-browser-group" class="startup-toggle-group"></div>
+                            </div>
                         </div>
                     </div>
                     <div id="settings-panel-updater" class="settings-panel">
@@ -275,7 +289,7 @@
                     beep will play once.</li>
                 <li>You can dismiss a firing timer by clicking on it.</li>
                 <li>The timers are preserved even if the application is not running.</li>
-                <li>If there are timers firing at startup time, the sound will not play.</li>
+                <li>If there are timers firing on startup, the sound will not play.</li>
                 <li>You can replace the beep sound by placing a <code>beep.mp3</code> file in the
                     <code>%AppData%\TAssistant</code> directory and restarting TAssistant.
                 </li>
@@ -341,10 +355,16 @@
                 <li>Relic path is used for the Relic preset.</li>
             </ul>
         </section>
+        <section id="help-startup" class="help-section">
+            <ul>
+                <li><strong>Launch on Windows startup</strong> registers TAssistant in the Windows login startup list.</li>
+                <li><strong>Open the browser tab</strong>: when disabled, TAssistant starts in the tray only.</li>
+            </ul>
+        </section>
         <section id="help-updater" class="help-section">
             <ul>
-                <li><strong>Automatic</strong>: updates are installed automatically at startup without prompting.</li>
-                <li><strong>Manual</strong>: an update prompt is shown at startup when an update is available.
+                <li><strong>Automatic</strong>: updates are installed automatically on startup without prompting.</li>
+                <li><strong>Manual</strong>: an update prompt is shown on startup when an update is available.
                     <ul>
                         <li>The prompt also allows skipping the specific version (ie. "don't ask again for this
                             version").</li>

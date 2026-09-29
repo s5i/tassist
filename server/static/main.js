@@ -14,15 +14,6 @@ const toast = {
     timer: undefined,
 };
 
-const keepalive = {
-    run: async function () {
-        // Foreground keepalive.
-        setInterval(() => { fetch('/api/keepalive').catch(() => { window.close(); }); }, 1000);
-
-        // Background keepalive; a little less intense.
-        new Worker(window.URL.createObjectURL(new Blob([`setInterval(() => { fetch('${window.location.href}'+'api/keepalive').catch(); }, 10000);`], { type: "text/javascript" })));
-    },
-};
 
 const version = {
     run: async function () {
@@ -489,6 +480,70 @@ const preset = {
     },
     fmtID: function (id) {
         return String(id).charAt(0).toUpperCase() + String(id).slice(1);
+    },
+};
+
+const startupSettings = {
+    run: function () {
+        startupSettings.initToggleGroup('startup-run-group', 'run_on_startup');
+        startupSettings.initToggleGroup('startup-open-browser-group', 'open_browser_on_startup');
+        startupSettings.reload();
+    },
+    initToggleGroup: function (groupId, field) {
+        const groupEl = document.getElementById(groupId);
+        for (const value of [true, false]) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = value ? 'On' : 'Off';
+            btn.classList.add('btn', 'preset-btn', 'startup-toggle-btn');
+            btn.dataset.field = field;
+            btn.dataset.value = String(value);
+            btn.addEventListener('click', startupSettings.hdlSelect);
+            groupEl.appendChild(btn);
+        }
+    },
+    reload: async function () {
+        const resp = await fetch('/api/settings/startup');
+        if (!resp.ok) return;
+        const d = await resp.json();
+        document.querySelectorAll('#startup-run-group .preset-btn').forEach((btn) => {
+            btn.classList.toggle('preset-active', btn.dataset.value === String(d.run_on_startup));
+        });
+        const browserRow = document.getElementById('startup-open-browser-row');
+        const browserEnabled = d.run_on_startup;
+        browserRow.classList.toggle('startup-setting-row-disabled', !browserEnabled);
+        document.querySelectorAll('#startup-open-browser-group .preset-btn').forEach((btn) => {
+            btn.disabled = !browserEnabled;
+            btn.classList.toggle('preset-active', browserEnabled && btn.dataset.value === String(d.open_browser_on_startup));
+        });
+    },
+    hdlSelect: async function (ev) {
+        const btn = ev.target.closest('.preset-btn');
+        if (btn.disabled) return;
+        const field = btn.dataset.field;
+        const value = btn.dataset.value === 'true';
+
+        const resp = await fetch('/api/settings/startup');
+        if (!resp.ok) return;
+        const current = await resp.json();
+        if (field === 'open_browser_on_startup' && !current.run_on_startup) return;
+
+        const payload = {
+            run_on_startup: field === 'run_on_startup' ? value : current.run_on_startup,
+            open_browser_on_startup: field === 'open_browser_on_startup' ? value : current.open_browser_on_startup,
+        };
+
+        const r = await fetch('/api/settings/startup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (r.ok) {
+            startupSettings.reload();
+        } else {
+            toast.msg('Error: ' + await r.text());
+            startupSettings.reload();
+        }
     },
 };
 
@@ -1619,9 +1674,9 @@ tabs.run();
 containerHelp.run();
 settingsNav.run();
 preset.run();
+startupSettings.run();
 updaterSettings.run();
 clientPaths.run();
-keepalive.run();
 version.run();
 update.run();
 exp.run();

@@ -28,8 +28,9 @@ import (
 )
 
 var (
-	dir    = flag.String("dir", filepath.Join(os.Getenv("AppData"), "TAssistant"), "Path to persistent dir.")
-	tmpDir = flag.String("tmp_dir", filepath.Join(os.Getenv("Temp"), "tassist"), "Path to temp dir.")
+	dir         = flag.String("dir", filepath.Join(os.Getenv("AppData"), "TAssistant"), "Path to persistent dir.")
+	tmpDir      = flag.String("tmp_dir", filepath.Join(os.Getenv("Temp"), "tassist"), "Path to temp dir.")
+	openBrowser = flag.Bool("open_browser", true, "Open the browser when the application starts.")
 )
 
 func main() {
@@ -171,7 +172,9 @@ func mainErr() (retErr error) {
 
 	eg.Go(func() error {
 		defer logPanic()
-		tray.OpenBrowser(server.BaseURL())
+		if *openBrowser {
+			tray.OpenBrowser(server.BaseURL())
+		}
 		tray.Run(server.BaseURL(), cancel)
 		return nil
 	})

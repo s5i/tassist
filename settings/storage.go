@@ -22,10 +22,12 @@ type Storage struct {
 }
 
 type StoredSettings struct {
-	Preset      string            `yaml:"preset"`
-	UpdaterMode string            `yaml:"updater_mode,omitempty"`
-	SkipVersion string            `yaml:"skip_version,omitempty"`
-	ClientPaths map[string]string `yaml:"client_paths,omitempty"`
+	Preset               string            `yaml:"preset"`
+	UpdaterMode          string            `yaml:"updater_mode,omitempty"`
+	SkipVersion          string            `yaml:"skip_version,omitempty"`
+	ClientPaths          map[string]string `yaml:"client_paths,omitempty"`
+	RunOnStartup         bool              `yaml:"run_on_startup,omitempty"`
+	OpenBrowserOnStartup *bool             `yaml:"open_browser_on_startup,omitempty"`
 }
 
 func New(dir string) (*Storage, error) {
@@ -129,6 +131,24 @@ func (s *Storage) CfgPath() string {
 		return ""
 	}
 	return filepath.Join(p, "game", s.preset.CfgName)
+}
+
+func (s *Storage) RunOnStartup() bool {
+	return s.stored.RunOnStartup
+}
+
+func (s *Storage) OpenBrowserOnStartup() bool {
+	if s.stored.OpenBrowserOnStartup == nil {
+		return false
+	}
+	return *s.stored.OpenBrowserOnStartup
+}
+
+func (s *Storage) SetStartupSettings(runOnStartup, openBrowserOnStartup bool) error {
+	s.stored.RunOnStartup = runOnStartup
+	v := openBrowserOnStartup
+	s.stored.OpenBrowserOnStartup = &v
+	return s.save()
 }
 
 func (s *Storage) save() error {

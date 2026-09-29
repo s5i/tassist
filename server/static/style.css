@@ -1301,3 +1301,53 @@ body {
     font-size: .85rem;
     align-self: flex-start;
 }
+
+.startup-setting-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin-top: 14px;
+}
+
+.startup-setting-row:first-of-type {
+    margin-top: 0;
+}
+
+.startup-setting-label {
+    font-size: .85rem;
+    color: #e0e0e0;
+    flex: 1 1 12rem;
+}
+
+.startup-toggle-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.startup-toggle-group .startup-toggle-btn {
+    width: auto;
+    min-width: 4.5rem;
+    padding: 8px 14px;
+}
+
+.startup-toggle-group .startup-toggle-btn[data-value="true"].preset-active {
+    background: #175c36;
+}
+
+.startup-toggle-group .startup-toggle-btn[data-value="false"].preset-active {
+    background: #8b2222;
+}
+
+.startup-setting-row-disabled {
+    opacity: 0.45;
+}
+
+.startup-setting-row-disabled .startup-setting-label {
+    color: #666;
+}
+
+.startup-setting-row-disabled .startup-toggle-btn:disabled {
+    cursor: not-allowed;
+}

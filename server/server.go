@@ -30,6 +30,7 @@ import (
 	"github.com/s5i/tassist/online"
 	"github.com/s5i/tassist/ping"
 	"github.com/s5i/tassist/settings"
+	"github.com/s5i/tassist/startup"
 	"github.com/s5i/tassist/timer"
 
 	"golang.org/x/sync/errgroup"
@@ -64,7 +65,6 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 	mux := http.NewServeMux()
 	mux.HandleFunc("/beep.mp3", s.handleBeep)
 	mux.HandleFunc("/", s.handleStatic)
-	mux.HandleFunc("/api/keepalive", s.handleKeepalive)
 	mux.HandleFunc("/api/version", s.handleVersion)
 	mux.HandleFunc("/api/accounts/list", s.handleAccList)
 	mux.HandleFunc("/api/accounts/rename", s.handleAccRename)
@@ -105,6 +105,7 @@ func New(dataDir, tmpDir string, accStorage *acc.Storage, expCache *exp.Cache, p
 	mux.HandleFunc("/api/hotkeys/update", s.handleHotkeysUpdate)
 	mux.HandleFunc("/api/hotkeys/detail", s.handleHotkeysDetail)
 	mux.HandleFunc("/api/settings/client-paths", s.handleClientPaths)
+	mux.HandleFunc("/api/settings/startup", s.handleStartupSettings)
 	s.mux = mux
 
 	return s, nil
@@ -409,11 +410,6 @@ func (s *Server) handleWorldOnline(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ret)
-}
-
-func (s *Server) handleKeepalive(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("{}"))
 }
 
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
@@ -1009,6 +1005,42 @@ func (s *Server) handleTimerList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
+}
+
+func (s *Server) handleStartupSettings(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			RunOnStartup         bool `json:"run_on_startup"`
+			OpenBrowserOnStartup bool `json:"open_browser_on_startup"`
+		}{
+			RunOnStartup:         s.stStorage.RunOnStartup(),
+			OpenBrowserOnStartup: s.stStorage.OpenBrowserOnStartup(),
+		})
+	case http.MethodPost:
+		var req struct {
+			RunOnStartup         bool `json:"run_on_startup"`
+			OpenBrowserOnStartup bool `json:"open_browser_on_startup"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.stStorage.SetStartupSettings(req.RunOnStartup, req.OpenBrowserOnStartup); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := startup.Configure(req.RunOnStartup, req.OpenBrowserOnStartup); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		log.Printf("Startup settings updated (run_on_startup=%v, open_browser_on_startup=%v).", req.RunOnStartup, req.OpenBrowserOnStartup)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("{}"))
+	default:
+		http.Error(w, "GET/POST only", http.StatusMethodNotAllowed)
+	}
 }
 
 func (s *Server) handleClientPaths(w http.ResponseWriter, r *http.Request) {
