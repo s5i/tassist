@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.33 - 2026-09-30
+
+- Fixed Tibiantis account switching post 2026-09-30 update (https://tibiantis.online/?page=viewtopic&id=690).
+
 ## v0.0.32 - 2026-09-29
 
 - Fixed an issue where the systray thread would block an externally triggered shutdown (eg. during an update).

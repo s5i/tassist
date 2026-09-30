@@ -25,7 +25,7 @@ var Presets = map[string]*Preset{
 		ClientWindowTitle: "Tibiantis",
 		CfgName:           "Tibiantis.cfg",
 		ServerAddr:        "51.89.155.163",
-		RegistryPath:      "SOFTWARE\tibiantis\\Credentials", // The unescaped tab is intentional.
+		RegistryPath:      "SOFTWARE\\Tibiantis\\Credentials",
 		OnlineSource: OnlineSource{
 			Domain:           "tibiantis.info",
 			ServerCookie:     "5f09bd1cefe846c0af2112896c03064eebf8e380",
@@ -38,7 +38,7 @@ var Presets = map[string]*Preset{
 		ClientWindowTitle: "Tibiantis",
 		CfgName:           "Tibiantis.cfg",
 		ServerAddr:        "57.129.145.195",
-		RegistryPath:      "SOFTWARE\tibiantis\\Credentials", // The unescaped tab is intentional.
+		RegistryPath:      "SOFTWARE\\Tibiantis\\Credentials",
 		OnlineSource: OnlineSource{
 			Domain:           "tibiantis.info",
 			ServerCookie:     "5f09bd1cefe846c0af2112896c03064eebf8e380",
