@@ -283,6 +283,59 @@ body {
     text-decoration: none;
 }
 
+.update-log {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(10, 10, 20, 0.72);
+    z-index: 40;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s, visibility .3s;
+}
+
+.update-log-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.update-log-panel {
+    width: 100%;
+    max-width: 560px;
+    padding: 20px 24px;
+    background: #121a31;
+    border: 1px solid #16213e;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.update-log-title {
+    margin-bottom: 12px;
+    font-size: .95rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-align: center;
+}
+
+.update-log-body {
+    margin: 0;
+    max-height: 50vh;
+    overflow: auto;
+    padding: 12px;
+    background: #0d1324;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-family: Consolas, 'Cascadia Mono', ui-monospace, monospace;
+    font-size: .8rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: left;
+}
+
 .help-prompt {
     position: fixed;
     inset: 0;

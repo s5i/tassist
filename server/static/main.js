@@ -28,23 +28,23 @@ const version = {
 
 const update = {
     pendingVersion: undefined,
+    watching: false,
+    stopped: false,
     run: function () {
-        document.getElementById('update-prompt-update').addEventListener('click', update.exec);
+        document.getElementById('update-prompt-update').addEventListener('click', update.execute);
         document.getElementById('update-prompt-skip').addEventListener('click', update.skip);
         document.getElementById('update-prompt-dismiss').addEventListener('click', update.hide);
         document.getElementById('update-prompt-disable').addEventListener('click', update.disableChecks);
         update.check();
     },
     check: async function () {
-        const settingsResp = await fetch('/api/update/settings');
-        if (!settingsResp.ok) return;
-        const settings = await settingsResp.json();
-
-        if (settings.mode !== 'Manual') return;
-
         const resp = await fetch('/api/update/check');
         if (!resp.ok) return;
         const d = await resp.json();
+        if (d.auto_execute) {
+            update.execute();
+            return;
+        }
         if (d.available) {
             update.show(d.version);
         }
@@ -57,9 +57,78 @@ const update = {
     hide: function () {
         document.getElementById('update-prompt').classList.remove('update-prompt-visible');
     },
-    exec: async function () {
+    execute: async function () {
         update.hide();
-        fetch('/api/update/execute').then(() => { window.close(); });
+        update.watch();
+        try {
+            const r = await fetch('/api/update/execute');
+            if (!r.ok) {
+                update.stopWatch();
+                toast.msg('Error: ' + await r.text());
+            }
+        } catch (e) {
+            // The server shuts down as part of the update; keep watching the updater.
+        }
+    },
+    watch: function () {
+        if (update.watching) return;
+        update.watching = true;
+        update.stopped = false;
+        update.pollLog();
+        update.pollReady();
+    },
+    stopWatch: function () {
+        update.stopped = true;
+        update.watching = false;
+        document.getElementById('update-log').classList.remove('update-log-visible');
+    },
+    pollLog: async function () {
+        while (!update.stopped) {
+            try {
+                const r = await fetch('http://127.0.0.1:2138/updater/log', { cache: 'no-store' });
+                if (r.ok) {
+                    const text = await r.text();
+                    const body = document.getElementById('update-log-body');
+                    body.textContent = text;
+                    body.scrollTop = body.scrollHeight;
+                    document.getElementById('update-log').classList.add('update-log-visible');
+                }
+            } catch (e) { }
+            await update.sleep(500);
+        }
+    },
+    pollReady: async function () {
+        while (!update.stopped) {
+            let ready = false;
+            try {
+                const r = await fetch('http://127.0.0.1:2138/updater/ready', { cache: 'no-store' });
+                if (r.ok) {
+                    const d = await r.json();
+                    ready = d.ready === true;
+                }
+            } catch (e) { }
+            if (ready) {
+                await update.waitForApp();
+                return;
+            }
+            await update.sleep(500);
+        }
+    },
+    waitForApp: async function () {
+        while (!update.stopped) {
+            try {
+                const r = await fetch('http://127.0.0.1:2137/api/version', { cache: 'no-store' });
+                if (r.ok) {
+                    update.stopped = true;
+                    window.location.reload();
+                    return;
+                }
+            } catch (e) { }
+            await update.sleep(500);
+        }
+    },
+    sleep: function (ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     },
     skip: async function () {
         const version = update.pendingVersion;

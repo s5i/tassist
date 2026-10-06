@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.0.34 - 2026-10-06
+
+- Updater: inline the updater log into the main GUI, automatically reload the tab after update.
+
 ## v0.0.33 - 2026-09-30
 
 - Fixed Tibiantis account switching post 2026-09-30 update (https://tibiantis.online/?page=viewtopic&id=690).

@@ -6,6 +6,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -37,6 +38,8 @@ import (
 
 	_ "embed"
 )
+
+var errUpdateNotReady = errors.New("Update is not ready.")
 
 var ErrRestart = fmt.Errorf("server is restarting...")
 
@@ -135,11 +138,6 @@ func (s *Server) Run(ctx context.Context) error {
 		<-ctx.Done()
 		s.srv.Shutdown(ctx)
 		return ctx.Err()
-	})
-
-	eg.Go(func() error {
-		s.maybeAutoUpdate()
-		return nil
 	})
 
 	err = eg.Wait()
@@ -515,8 +513,12 @@ func (s *Server) handleUpdateSkip(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUpdateExecute(w http.ResponseWriter, r *http.Request) {
-	if !s.performUpdateExecute() {
-		http.Error(w, "Update is not ready.", http.StatusNotFound)
+	if err := s.performUpdateExecute(); err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, errUpdateNotReady) {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
 
@@ -524,33 +526,23 @@ func (s *Server) handleUpdateExecute(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{}"))
 }
 
-func (s *Server) maybeAutoUpdate() {
-	if s.stStorage.UpdaterMode() != settings.UpdaterModeAutomatic {
-		return
-	}
-
-	result := s.performUpdateCheck()
-	if !result.Available {
-		return
-	}
-
-	log.Printf("Auto-updating to %s...", result.Version)
-	s.performUpdateExecute()
-}
-
-func (s *Server) performUpdateExecute() bool {
+func (s *Server) performUpdateExecute() error {
 	s.updateMu.Lock()
 	defer s.updateMu.Unlock()
 
 	if !s.updateReady {
-		return false
+		return errUpdateNotReady
 	}
 
 	go exec.Command("cmd", "/C", "start", s.updaterPath, os.Args[0], s.updaterSource).Run()
-	time.Sleep(3 * time.Second)
+	s.updateReady = false
 
-	s.cancel()
-	return true
+	go func() {
+		time.Sleep(3 * time.Second)
+		s.cancel()
+	}()
+
+	return nil
 }
 
 func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
@@ -563,12 +555,17 @@ func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(s.performUpdateCheck())
+	result := s.performUpdateCheck()
+	if result.Available && s.stStorage.UpdaterMode() == settings.UpdaterModeAutomatic {
+		result.AutoExecute = true
+	}
+	json.NewEncoder(w).Encode(result)
 }
 
 type updateCheckResult struct {
-	Available bool   `json:"available"`
-	Version   string `json:"version,omitempty"`
+	Available   bool   `json:"available"`
+	Version     string `json:"version,omitempty"`
+	AutoExecute bool   `json:"auto_execute,omitempty"`
 }
 
 func (s *Server) performUpdateCheck() updateCheckResult {

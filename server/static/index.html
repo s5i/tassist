@@ -363,7 +363,8 @@
         </section>
         <section id="help-updater" class="help-section">
             <ul>
-                <li><strong>Automatic</strong>: updates are installed automatically on startup without prompting.</li>
+                <li><strong>Automatic</strong>: updates are installed automatically without prompting while TAssistant is open.</li>
+                <li>While an update runs, its log is shown here. The page reloads when the new version is up.</li>
                 <li><strong>Manual</strong>: an update prompt is shown on startup when an update is available.
                     <ul>
                         <li>The prompt also allows skipping the specific version (ie. "don't ask again for this
@@ -379,6 +380,13 @@
         <div class="help-prompt-panel">
             <div id="help-prompt-content" class="help-content"></div>
             <button id="help-prompt-close" type="button" class="btn help-prompt-close">Close</button>
+        </div>
+    </div>
+
+    <div id="update-log" class="update-log">
+        <div class="update-log-panel">
+            <div class="update-log-title">Updating...</div>
+            <pre id="update-log-body" class="update-log-body"></pre>
         </div>
     </div>
 
