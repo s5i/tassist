@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.0.35 - 2026-10-15
+
+- Startup: fixed a bug where a stale PID file would prevent TAssistant from launching.
+
 # v0.0.34 - 2026-10-06
 
 - Updater: inline the updater log into the main GUI, automatically reload the tab after update.
